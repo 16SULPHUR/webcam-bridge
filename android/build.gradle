@@ -1,18 +1,5 @@
-// Top-level build.gradle
-// Plugin classpath only — repositories are declared in settings.gradle
-
-buildscript {
-    ext.kotlin_version = '1.9.24'
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.5.2'
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
-}
-
-task clean(type: Delete) {
-    delete rootProject.buildDir
+// Top-level build.gradle — plugin versions only; repositories live in settings.gradle.
+// AGP 9 compiles Kotlin itself, so there is no separate Kotlin plugin.
+plugins {
+    id 'com.android.application' version '9.4.0' apply false
 }

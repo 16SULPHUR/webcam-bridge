@@ -54,7 +54,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="WINDOWS BRIDGE PC CONNECTION"
+                        android:text="PC BRIDGE CONNECTION"
                         android:textSize="10sp"
                         android:textStyle="bold"
                         android:textColor="#06b6d4"
@@ -477,7 +477,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="OBS Virtual Camera"
+                            android:text="Virtual Camera"
                             android:textColor="#ffffff"
                             android:textSize="14sp" />
                         <com.google.android.material.switchmaterial.SwitchMaterial

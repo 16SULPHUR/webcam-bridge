@@ -50,8 +50,8 @@ Tips:
 
 ## Android development
 
-Open `android/` in Android Studio (JDK 17, SDK 34), or run
-`./gradlew assembleDebug`. Keep `minSdk` at 21 unless there's a strong reason to raise it.
+Open `android/` in Android Studio, or run
+`./gradlew assembleDebug` (JDK 17, SDK 37). Keep `minSdk` at 23 unless there is a strong reason to raise it.
 
 ## Pull requests
 

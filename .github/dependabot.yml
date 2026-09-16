@@ -1,14 +1,25 @@
 version: 2
+# Updates are grouped so related bumps (e.g. AndroidX libraries that need a
+# newer compileSdk / AGP) arrive as one PR that can be tested together.
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
   - package-ecosystem: pip
     directory: /desktop
     schedule:
       interval: monthly
+    groups:
+      python:
+        patterns: ["*"]
   - package-ecosystem: gradle
     directory: /android
     schedule:
       interval: monthly
+    groups:
+      android:
+        patterns: ["*"]

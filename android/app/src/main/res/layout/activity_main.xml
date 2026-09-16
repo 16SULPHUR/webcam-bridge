@@ -360,7 +360,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Stream this phone's camera to your Windows PC over USB ADB."
+                    android:text="Stream this phone's camera to your PC over USB."
                     android:textColor="#9ca3af"
                     android:textSize="13sp" />
             </LinearLayout>

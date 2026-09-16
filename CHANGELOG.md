@@ -6,6 +6,10 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+- Android: Gradle 9.7, Android Gradle Plugin 9.4 (built-in Kotlin), compileSdk 37 / targetSdk 36, current AndroidX and
+  Material libraries. **Minimum Android version is now 6.0 (API 23).**
+
 ## [0.1.0] - 2026-09-16
 
 First public release.

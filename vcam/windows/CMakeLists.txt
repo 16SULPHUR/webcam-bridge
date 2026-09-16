@@ -22,7 +22,7 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set(SOFTCAM ${CMAKE_CURRENT_SOURCE_DIR}/third_party/softcam/src)
 
 add_compile_definitions(WIN32 UNICODE _UNICODE _CRT_SECURE_NO_WARNINGS $<$<NOT:$<CONFIG:Debug>>:NDEBUG>)
-add_compile_options(/W3 /MP /sdl /permissive-)
+add_compile_options(/MP /sdl)
 
 add_library(baseclasses STATIC
   ${SOFTCAM}/baseclasses/amfilter.cpp
@@ -38,6 +38,8 @@ add_library(baseclasses STATIC
   ${SOFTCAM}/baseclasses/wxutil.cpp
 )
 target_compile_definitions(baseclasses PRIVATE _LIB)
+# Microsoft's BaseClasses predate standard conformance mode; softcam builds them with /W3 only.
+target_compile_options(baseclasses PRIVATE /W3)
 target_include_directories(baseclasses PUBLIC ${SOFTCAM}/baseclasses)
 
 add_library(softcamcore STATIC
@@ -49,12 +51,14 @@ add_library(softcamcore STATIC
 )
 target_include_directories(softcamcore PUBLIC ${SOFTCAM} ${SOFTCAM}/softcamcore)
 target_link_libraries(softcamcore PUBLIC baseclasses)
+target_compile_options(softcamcore PRIVATE /W4 /permissive-)
 
 add_library(webcam_bridge_cam SHARED
   ${SOFTCAM}/softcam/softcam.cpp
   ${SOFTCAM}/softcam/softcam.def
 )
 target_include_directories(webcam_bridge_cam PRIVATE ${SOFTCAM}/softcam)
+target_compile_options(webcam_bridge_cam PRIVATE /W4 /permissive-)
 target_link_libraries(webcam_bridge_cam PRIVATE
   softcamcore winmm ole32 oleaut32 uuid advapi32 user32 gdi32)
 

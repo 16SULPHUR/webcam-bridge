@@ -24,6 +24,7 @@ _DEFAULTS: dict[str, Any] = {
     "mirror":      False,
     "orientation": 0,
     "vcamEnabled": True,
+    "vcamBackend": "auto",  # "auto" | "builtin" | "obs" — see vcam.py
     "zoom":        1.0,
     # Video-processing (applied via FFmpeg eq / unsharp filters)
     "brightness":  0.0,    # -1.0 → +1.0  (FFmpeg eq=brightness)

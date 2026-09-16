@@ -44,7 +44,7 @@ version = { attr = "webcam_bridge.__version__" }
 include = ["webcam_bridge*"]
 
 [tool.setuptools.package-data]
-webcam_bridge = ["web/**/*", "assets/**/*"]
+webcam_bridge = ["web/**/*", "assets/**/*", "bin/**/*.dll"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

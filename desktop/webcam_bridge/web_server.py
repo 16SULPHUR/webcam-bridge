@@ -95,6 +95,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._handle_serve_skin(path)
             elif path == "/api/reactions/catalog":
                 self._handle_reactions_catalog()
+            elif path == "/api/vcam":
+                self._handle_vcam_status()
             elif path.startswith("/reactions/assets/"):
                 self._handle_serve_reaction_asset(path)
             elif path.startswith("/video_feed"):
@@ -149,6 +151,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._handle_upload_reaction_asset()
             elif path == "/api/reactions/preview":
                 self._handle_reaction_preview()
+            elif path in ("/api/vcam/install", "/api/vcam/uninstall"):
+                self._handle_vcam_change(path.rsplit("/", 1)[1])
             else:
                 self.send_error(404)
         except Exception as exc:
@@ -438,6 +442,28 @@ class BridgeHandler(BaseHTTPRequestHandler):
         reactions["testFire"] = {"ts": time.time(), "mapping": mapping}
         self.config.update({"reactions": reactions})
         self._json({"success": True})
+
+    # ── Virtual camera ────────────────────────────────────────────────────────
+
+    def _handle_vcam_status(self) -> None:
+        from . import vcam
+        info = vcam.status()
+        info["backend"] = vcam.resolve_backend(self.config.get("vcamBackend", "auto"))
+        self._json(info)
+
+    def _handle_vcam_change(self, action: str) -> None:
+        """Install / uninstall the built-in camera (shows a UAC prompt on this PC)."""
+        from . import vcam
+        if self.client_address[0] not in ("127.0.0.1", "::1"):
+            self._json({"success": False, "error": "Only allowed from this computer"}, 403)
+            return
+        try:
+            message = vcam.install() if action == "install" else vcam.uninstall()
+        except vcam.VirtualCameraError as exc:
+            self._json({"success": False, "error": str(exc)}, 400)
+            return
+        self.broadcaster.broadcast_log("system", message)
+        self._json({"success": True, "message": message, **vcam.status()})
 
     # ── Backgrounds ───────────────────────────────────────────────────────────
 

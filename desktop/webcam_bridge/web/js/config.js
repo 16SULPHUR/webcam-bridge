@@ -15,6 +15,7 @@ const Config = (() => {
     cameraFacing:        ['string', 'back'],
     mirror:              ['bool', false],
     vcamEnabled:         ['bool', true],
+    vcamBackend:         ['string', 'auto'],
     zoom:                ['float', 1.0,  v => v.toFixed(1) + '×'],
     brightness:          ['float', 0.0,  v => v.toFixed(2)],
     contrast:            ['float', 1.0,  v => v.toFixed(2)],

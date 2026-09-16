@@ -7,6 +7,7 @@ following third-party material.
 
 | Material | Where | License |
 |---|---|---|
+| [softcam](https://github.com/tshino/softcam) — Copyright (c) 2020 tshino, including Microsoft DirectShow BaseClasses | `vcam/windows/third_party/softcam/` and the `webcam_bridge_cam.dll` built from it | [MIT](vcam/windows/third_party/softcam/LICENSE) |
 | [Twemoji](https://github.com/jdecked/twemoji) graphics — Copyright 2019 Twitter, Inc and other contributors | `desktop/webcam_bridge/assets/emoji/` (rasterized from SVG) | [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
 | `oneko.gif` sprite sheet from [oneko.js](https://github.com/adryd325/oneko.js) by adryd325 | `desktop/webcam_bridge/web/img/oneko.gif` | [MIT](https://github.com/adryd325/oneko.js/blob/main/LICENSE) |
 | Gradle Wrapper | `android/gradle/wrapper/` | [Apache-2.0](https://github.com/gradle/gradle/blob/master/LICENSE) |

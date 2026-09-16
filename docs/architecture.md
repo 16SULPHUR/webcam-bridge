@@ -19,7 +19,7 @@ Webcam Bridge has two halves that talk over an `adb` USB connection.
 │                    │           frame_sender.py  (separate process)         │
 │                    │             zoom · colour · background · touch-up     │
 │                    │             pets · reactions                          │
-│                    │                 ├──► pyvirtualcam → OBS Virtual Camera│
+│                    │                 ├──► vcam → "Webcam Bridge" camera    │
 │                    │                 └──► JPEG frames → dashboard preview  │
 │                    └──► recorder (H.264 → MP4, no re-encode)               │
 │                                                                            │
@@ -43,6 +43,7 @@ Webcam Bridge has two halves that talk over an `adb` USB connection.
 | `frame_sender.py` | Per-frame processing; re-reads `config.json` so changes apply live |
 | `rvm_matting.py`, `face_touchup.py` | Optional heavy effects, loaded lazily |
 | `reactions/` | Gesture/expression detection and overlay animation — see [reactions.md](reactions.md) |
+| `vcam.py` | Virtual camera output (built-in DirectShow camera or pyvirtualcam) and its installer |
 | `recorder.py` | Remuxes the raw H.264 stream to MP4 |
 | `web_server.py` | Standard-library HTTP server for the dashboard |
 | `fetch.py` | Optional downloads (MediaPipe models, Neko skins) |
@@ -52,6 +53,13 @@ through pipes: stdin carries raw frames, stdout carries length-prefixed JPEGs,
 and stderr carries logs (lines beginning with `@@RX ` are reaction status).
 C libraries that print to stdout are redirected so they can't corrupt the frame
 protocol.
+
+## Virtual camera
+
+`vcam/windows/` builds `webcam_bridge_cam.dll`, a DirectShow source filter
+(vendored softcam). The bridge loads it with `ctypes` and writes frames to
+shared memory; camera apps load the same DLL, registered once with `regsvr32`,
+and read from that memory. See [vcam/windows/README.md](../vcam/windows/README.md).
 
 ## Files on disk
 

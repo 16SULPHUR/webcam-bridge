@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Built-in **Webcam Bridge** virtual camera for Windows (DirectShow, based on softcam) — OBS is no longer required.
+  Manage it with `webcam-bridge camera install|uninstall|status` or from the dashboard's Camera page.
+- `vcamBackend` setting (Automatic / Webcam Bridge / OBS) and `python -m webcam_bridge.fetch vcam`.
+
 ## [0.1.0] - 2026-09-16
 
 First public release.

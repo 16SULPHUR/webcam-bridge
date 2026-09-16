@@ -31,6 +31,17 @@ if /i "%~1"=="rvm" (
 )
 if errorlevel 1 exit /b 1
 
+REM Built-in virtual camera: release zips ship the DLLs, git checkouts download them.
+if not exist "%ROOT%\desktop\webcam_bridge\bin\x64\webcam_bridge_cam.dll" (
+    "%VENV%\Scripts\python.exe" -m webcam_bridge.fetch vcam
+)
+"%VENV%\Scripts\webcam-bridge.exe" camera status | find "not installed" >nul
+if %errorlevel%==0 (
+    echo.
+    echo Installing the "Webcam Bridge" virtual camera - approve the administrator prompt.
+    "%VENV%\Scripts\webcam-bridge.exe" camera install || echo [WARN] Camera not installed - OBS Virtual Camera will be used instead.
+)
+
 echo.
 where ffmpeg >nul 2>&1 || echo [WARN] ffmpeg not found on PATH - install it or set WEBCAM_BRIDGE_FFMPEG.
 where adb    >nul 2>&1 || echo [WARN] adb not found on PATH - install Android platform-tools.

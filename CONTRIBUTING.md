@@ -20,6 +20,7 @@ desktop/            Desktop bridge (Python package `webcam_bridge`)
   webcam_bridge/    source; web/ is the dashboard, assets/ bundled media
   tests/            pytest suite
   tools/emoji/      rebuilds the bundled Twemoji pack (Node.js)
+vcam/windows/       built-in virtual camera DLL (C++, CMake, vendored softcam)
 docs/               architecture and feature docs
 scripts/            setup / start helpers
 ```
@@ -47,6 +48,13 @@ Tips:
 - `frame_sender.py` runs in a separate process. Never `print()` to stdout
   there, because stdout carries video frames. Use `log()` instead.
 - New config keys must be added to `_DEFAULTS` in `config.py`, or they won't be saved.
+
+## Virtual camera development
+
+The DLL in `vcam/windows/` needs Visual Studio 2019+ — see
+[vcam/windows/README.md](vcam/windows/README.md). If you only work on Python,
+`python -m webcam_bridge.fetch vcam` downloads a prebuilt copy, and CI builds it
+for every pull request.
 
 ## Android development
 

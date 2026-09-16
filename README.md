@@ -1,8 +1,9 @@
 # Webcam Bridge
 
 **Use your Android phone as a USB webcam.** The phone streams H.264 over USB;
-the desktop bridge decodes it, applies effects and feeds a virtual camera that
-Zoom, Teams, Meet, Discord and OBS can use.
+the desktop bridge decodes it, applies effects and feeds its own **Webcam
+Bridge** virtual camera that Zoom, Teams, Meet, Discord and OBS can use — no
+OBS install required.
 
 [![CI](https://github.com/16SULPHUR/webcam-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/16SULPHUR/webcam-bridge/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -22,7 +23,7 @@ Android phone                                   Desktop (Windows)
 ┌─────────────────────────┐   USB (adb)   ┌───────────────────────────────────────────┐
 │ Camera2 → MediaCodec    │ ────────────► │ TCP client (localhost:8080)               │
 │ H.264 → TCP server :8080│               │   → FFmpeg decode → Python effects        │
-│                         │ ◄──────────── │   → pyvirtualcam (OBS Virtual Camera)     │
+│                         │ ◄──────────── │   → "Webcam Bridge" virtual camera        │
 │ Remote control / widget │  adb reverse  │ Dashboard  http://localhost:5134          │
 └─────────────────────────┘               └───────────────────────────────────────────┘
 ```
@@ -38,7 +39,7 @@ More detail in [docs/architecture.md](docs/architecture.md).
 | Python | 3.10 – 3.12 ([python.org](https://www.python.org/downloads/)) |
 | FFmpeg | On `PATH` ([ffmpeg.org](https://ffmpeg.org/download.html)), or set `WEBCAM_BRIDGE_FFMPEG` |
 | ADB | [Android platform-tools](https://developer.android.com/tools/releases/platform-tools) on `PATH` |
-| Virtual camera | [OBS Studio](https://obsproject.com) 26+ (provides the "OBS Virtual Camera" device) |
+| Virtual camera | Built in on Windows (one admin prompt at setup). Fallback: [OBS Studio](https://obsproject.com) 26+ |
 
 ## Quick start
 
@@ -50,19 +51,22 @@ More detail in [docs/architecture.md](docs/architecture.md).
    ```bat
    scripts\setup.bat
    ```
-   Add `rvm` (`scripts\setup.bat rvm`) to also install PyTorch for the
+   This also installs the **Webcam Bridge** camera — approve the administrator
+   prompt. Add `rvm` (`scripts\setup.bat rvm`) to also install PyTorch for the
    higher-quality Robust Video Matting background engine.
 3. **Connect.** Plug the phone in over USB, open the app and tap **Start Streaming**, then:
    ```bat
    scripts\start.bat
    ```
 4. **Open the dashboard** at <http://localhost:5134>.
-5. **Pick the camera.** In Zoom / Teams / OBS select **OBS Virtual Camera**.
+5. **Pick the camera.** In Zoom / Teams / Meet select **Webcam Bridge**
+   (restart apps that were open during setup). Start the bridge first.
 
 ### Command-line options
 
 ```
 webcam-bridge [--host HOST] [--port PORT] [--no-tui] [--version]
+webcam-bridge camera install | uninstall | status
 ```
 
 | Option / variable | Default | Purpose |
@@ -80,6 +84,15 @@ webcam-bridge [--host HOST] [--port PORT] [--no-tui] [--version]
 desktop\.venv\Scripts\python -m webcam_bridge.fetch models   :: MediaPipe models (needed with mediapipe >= 1.0)
 desktop\.venv\Scripts\python -m webcam_bridge.fetch skins    :: Neko skins for custom pets
 ```
+
+## Virtual camera
+
+On Windows the bridge ships its own DirectShow camera, **Webcam Bridge**
+(built from [softcam](https://github.com/tshino/softcam)). `scripts\setup.bat`
+installs it; you can also manage it from the dashboard's **Camera** page or with
+`webcam-bridge camera install|uninstall|status`. The **Virtual camera** setting
+picks the output: *Automatic* uses Webcam Bridge when installed and OBS Virtual
+Camera otherwise. Details and limitations: [vcam/windows/README.md](vcam/windows/README.md).
 
 ## Phone remote control
 
@@ -111,8 +124,9 @@ adb install -r app\build\outputs\apk\debug\app-debug.apk
 ## Linux / macOS
 
 The bridge is developed on Windows, but its dependencies are cross-platform.
-`pyvirtualcam` needs [v4l2loopback](https://github.com/umlaeute/v4l2loopback)
-on Linux and OBS on macOS. Use `scripts/start.sh`. Reports and fixes are welcome!
+The built-in camera is Windows-only; there `pyvirtualcam` is used instead and
+needs [v4l2loopback](https://github.com/umlaeute/v4l2loopback) on Linux and OBS
+on macOS. Use `scripts/start.sh`. Reports and fixes are welcome!
 
 ## Troubleshooting
 
@@ -120,7 +134,8 @@ on Linux and OBS on macOS. Use `scripts/start.sh`. Reports and fixes are welcome
 |---|---|
 | `adb` not found | Install platform-tools and add the folder to `PATH` |
 | Dashboard says *Android disconnected* | Make sure the app is streaming and `adb forward tcp:8080 tcp:8080` ran (`scripts\start.bat` does this) |
-| No "OBS Virtual Camera" device | Install OBS 26+ and start its virtual camera once |
+| No "Webcam Bridge" camera in apps | Run `webcam-bridge camera install`, restart the app, and start the bridge before selecting the camera |
+| Camera shows a dark frozen image | The bridge stopped — start it again |
 | `ffmpeg` not found | Add FFmpeg's `bin` folder to `PATH` or set `WEBCAM_BRIDGE_FFMPEG` |
 | Phone remote control can't connect | Re-run `scripts\start.bat` (sets up `adb reverse`) or use Wi-Fi mode |
 | Background removal is slow | Use the MediaPipe engine, lower the resolution, or install the `rvm` extra on an NVIDIA GPU |
@@ -134,5 +149,5 @@ follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
-[MIT](LICENSE). Bundled third-party material (Twemoji, oneko) is listed in
+[MIT](LICENSE). Bundled third-party material (softcam, Twemoji, oneko) is listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

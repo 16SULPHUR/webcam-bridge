@@ -63,10 +63,23 @@
       <label>Send to virtual camera</label>
       <label class="switch"><input type="checkbox" data-bind="vcamEnabled"><i></i></label>
     </div>
+    <div class="field field-row">
+      <label>Virtual camera</label>
+      <select data-bind="vcamBackend">
+        <option value="auto">Automatic</option>
+        <option value="builtin">Webcam Bridge camera</option>
+        <option value="obs">OBS Virtual Camera</option>
+      </select>
+    </div>
+    <div class="field field-row">
+      <span class="hint" id="vcam-status">Checking virtual camera…</span>
+      <button class="btn sm" id="vcam-action" hidden onclick="Vcam.toggle()">Install camera</button>
+    </div>
   </div>
 </div>
 
 <div class="note" style="margin-top:14px">
-  OBS must be running with <b>Start Virtual Camera</b> pressed before the bridge starts, or the
-  virtual camera output disables itself after a few retries. The web preview keeps working either way.
+  Pick <b>Webcam Bridge</b> as the camera in Zoom, Teams, Meet or OBS. Installing it needs one
+  administrator prompt; apps that were already open must be restarted to see it. Without it,
+  <b>Automatic</b> uses OBS Virtual Camera (OBS 26+). The web preview works either way.
 </div>

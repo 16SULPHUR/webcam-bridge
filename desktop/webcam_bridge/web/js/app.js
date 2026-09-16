@@ -181,6 +181,7 @@ const App = (() => {
     navigate(location.hash.slice(1) || 'live');
     Reactions.init();
     Config.load();
+    Vcam.refresh();
     connect();
   }
 

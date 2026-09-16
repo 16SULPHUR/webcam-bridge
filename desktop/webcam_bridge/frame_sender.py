@@ -4,7 +4,7 @@ frame_sender.py — Python stream processor.
 Reads raw BGR24 video frames from stdin (piped from FFmpeg),
 applies dynamic adjustments (zoom, mirror, orientation, color, unsharp,
 and background blur/replacement) in real-time, and outputs them to the
-OBS Virtual Camera and web preview stdout.
+virtual camera (see vcam.py) and web preview stdout.
 
 Performance improvements over v1:
   - MediaPipe `model_selection=1` (Landscape, 256x144) - ~44% fewer FLOPs
@@ -39,11 +39,6 @@ import time
 import cv2
 import json
 
-try:
-    import pyvirtualcam
-except ImportError:
-    pyvirtualcam = None
-
 # We read config path from argument
 if len(sys.argv) < 2:
     sys.stderr.write("[PySender] ERROR: config.json path must be passed as the first argument.\n")
@@ -53,6 +48,7 @@ config_path = sys.argv[1]
 
 from webcam_bridge import paths  # noqa: E402
 from webcam_bridge.image_io import imread  # noqa: E402
+from webcam_bridge import vcam  # noqa: E402
 RX_STATUS_PREFIX = "@@RX "
 
 # Dynamic settings (default values)
@@ -68,6 +64,7 @@ saturation = 1.0
 sharpness = 0.0
 blur = 0
 vcam_enabled = True
+vcam_backend = "auto"   # "auto" | "builtin" | "obs"
 bg_mode = "none"   # "none" | "blur" | "replace"
 bg_image = ""      # filename within backgrounds/
 oneko_enabled = True
@@ -92,7 +89,7 @@ def log(msg):
 
 def load_config(initial=False):
     global WIDTH, HEIGHT, mirror, orientation, zoom, brightness, contrast
-    global saturation, sharpness, blur, vcam_enabled, bg_mode, bg_image, oneko_enabled, oneko_size
+    global saturation, sharpness, blur, vcam_enabled, vcam_backend, bg_mode, bg_image, oneko_enabled, oneko_size
     global custom_oneko_enabled, custom_oneko_skin, custom_pets_config, segmentation_engine, _prev_settings
     global rvm_downsample_ratio, face_touchup_enabled, face_touchup_strength, rvm_segmenter
     global reactions_cfg
@@ -118,6 +115,7 @@ def load_config(initial=False):
         sharpness   = float(cfg.get("sharpness", 0.0))
         blur        = int(cfg.get("blur", 0))
         vcam_enabled = cfg.get("vcamEnabled", True)
+        vcam_backend = cfg.get("vcamBackend", "auto")
         bg_mode     = cfg.get("bgMode", "none")
         bg_image    = cfg.get("bgImage", "")
         oneko_enabled = cfg.get("onekoEnabled", True)
@@ -133,11 +131,11 @@ def load_config(initial=False):
         # Reset RVM recurrent states when engine switches to/from RVM
         if rvm_segmenter is not None and prev_engine != segmentation_engine:
             rvm_segmenter.reset_states()
-        
+
         custom_pets_config = cfg.get("customPets", [])
         if not isinstance(custom_pets_config, list):
             custom_pets_config = []
-            
+
         # Fallback for backward compatibility
         if not custom_pets_config:
             custom_pets_config = [{"skin": custom_oneko_skin, "enabled": custom_oneko_enabled}]
@@ -389,12 +387,12 @@ class OnekoAnimator:
         self.current_skin = None
         self.sprite_size = 32
         self.speed = 3
-        
+
         # Stagger starting positions so they don't overlap exactly
         self.x = 180 if is_custom else 80
         self.y = 0
         self.target_x = 280 if is_custom else 140
-        
+
         self.frame_count = 0
         self.state_timer = 0
         self.state_duration = 20
@@ -431,18 +429,18 @@ class OnekoAnimator:
     def preload_custom_skin(self, skin_name):
         if self.current_skin == skin_name:
             return
-        
+
         self.custom_frames.clear()
         self.current_skin = skin_name
-        
+
         skin_dir = paths.safe_join(paths.SKINS_DIR, skin_name) or ""
-        
+
         if not os.path.isdir(skin_dir):
             sys.stderr.write(f"[Oneko] Custom skin dir not found: {skin_dir}\n")
             return
-            
+
         sys.stderr.write(f"[Oneko] Preloading custom skin: {skin_name}\n")
-        
+
         loaded_count = 0
         for (col, row), filename in COORDS_TO_FILE.items():
             img_path = os.path.join(skin_dir, f"{filename}.png")
@@ -456,20 +454,20 @@ class OnekoAnimator:
                     elif img.shape[2] == 3:
                         # BGR -> BGRA
                         img = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
-                    
+
                     self.custom_frames[(col, row)] = img
                     loaded_count += 1
-                    
+
         sys.stderr.write(f"[Oneko] Preloaded {loaded_count}/32 frames for custom skin: {skin_name}\n")
 
     def tick(self, width, height, scale):
         self.frame_count += 1
         self.state_timer += 1
-        
+
         scaled_size = int(self.sprite_size * scale)
         max_x = width - scaled_size
         self.y = height - scaled_size
-        
+
         if self.state == "idle":
             self.sprite_name = "idle"
             if self.state_timer >= self.state_duration:
@@ -516,7 +514,7 @@ class OnekoAnimator:
                 self.state = "alert"
                 self.state_duration = 5
                 self.state_timer = 0
-                
+
     def pick_next_state(self, max_x, scaled_size):
         roll = np.random.random()
         if roll < 0.50:
@@ -539,15 +537,15 @@ class OnekoAnimator:
             return
         if self.is_custom and not self.custom_frames:
             return
-            
+
         h, w = frame_rgb.shape[:2]
         self.tick(w, h, scale)
-        
+
         # Get frame of current state
         sprites = self.sprite_sets.get(self.sprite_name, [(3, 3)])
         idx = (self.frame_count // 3) % len(sprites)
         col, row = sprites[idx]
-        
+
         if self.is_custom:
             sprite = self.custom_frames.get((col, row))
             if sprite is None:
@@ -560,26 +558,26 @@ class OnekoAnimator:
             sy = row * self.sprite_size
             sx = col * self.sprite_size
             sprite = self.sprite_sheet[sy:sy+self.sprite_size, sx:sx+self.sprite_size]
-        
+
         # Scale the sprite using nearest neighbor to preserve clean pixel art
         scaled_size = int(self.sprite_size * scale)
         sprite = cv2.resize(sprite, (scaled_size, scaled_size), interpolation=cv2.INTER_NEAREST)
-        
+
         # Ensure we draw inside boundaries
         x_start = int(self.x)
         y_start = int(self.y)
-        
+
         if x_start < 0 or y_start < 0 or x_start + scaled_size > w or y_start + scaled_size > h:
             return
-            
+
         # Blend using alpha channel
         sprite_bgr = sprite[:, :, :3]
         sprite_alpha = sprite[:, :, 3] / 255.0
         sprite_alpha_3d = np.stack([sprite_alpha]*3, axis=-1)
-        
+
         roi = frame_rgb[y_start:y_start+scaled_size, x_start:x_start+scaled_size]
         sprite_rgb = sprite_bgr[:, :, ::-1]
-        
+
         blended = (sprite_rgb * sprite_alpha_3d + roi * (1.0 - sprite_alpha_3d)).astype(np.uint8)
         frame_rgb[y_start:y_start+scaled_size, x_start:x_start+scaled_size] = blended
 
@@ -614,6 +612,9 @@ def main():
 
     stdin_buf = sys.stdin.buffer
     frames_processed = 0
+    py_cam_key = None          # (width, height, backend) of the open camera
+    py_cam_backend = "obs"     # resolved on frame 0
+    py_cam_retry_at = 0        # frame number of the next open attempt after a failure
 
     try:
         while True:
@@ -621,7 +622,7 @@ def main():
             if frames_processed % 10 == 0:
                 load_config(initial=False)
                 sync_reaction_engine()
-                
+
                 # Sync animators count with customPets config list
                 while len(custom_animators) < len(custom_pets_config):
                     new_animator = OnekoAnimator(is_custom=True)
@@ -631,7 +632,7 @@ def main():
                     custom_animators.append(new_animator)
                 while len(custom_animators) > len(custom_pets_config):
                     custom_animators.pop()
-                    
+
                 # Preload custom skins for each animator slot
                 for idx, pet_cfg in enumerate(custom_pets_config):
                     skin_name = pet_cfg.get("skin", "socks")
@@ -645,7 +646,7 @@ def main():
                     segmenter_thread = threading.Thread(target=segmenter_thread_func, name="SegmenterThread", daemon=True)
                     segmenter_thread.start()
                     log("[PySender] Background segmenter thread started.")
-                
+
                 if segmentation_engine == "mediapipe" and segmenter is None and not segmenter_loading:
                     segmenter_loading = True
                     threading.Thread(target=load_mediapipe_worker, name="MpLoader", daemon=True).start()
@@ -770,7 +771,11 @@ def main():
                 # 8. Send to Virtual Camera
                 if vcam_enabled:
                     with vcam_lock:
-                        if py_cam is None or py_cam.width != w_rot or py_cam.height != h_rot:
+                        # Backend resolution reads the registry — only re-check it periodically.
+                        if frames_processed % 30 == 0:
+                            py_cam_backend = vcam.resolve_backend(vcam_backend)
+                        wanted = (w_rot, h_rot, py_cam_backend)
+                        if wanted != py_cam_key and (py_cam is not None or frames_processed >= py_cam_retry_at):
                             if py_cam:
                                 try:
                                     py_cam.close()
@@ -778,19 +783,15 @@ def main():
                                     pass
                                 py_cam = None
                             try:
-                                if pyvirtualcam is not None:
-                                    py_cam = pyvirtualcam.Camera(
-                                        width=w_rot, height=h_rot, fps=FPS,
-                                        print_fps=False, backend='obs'
-                                    )
-                                    log(f"[PySender] Virtual camera opened: {py_cam.device} ({w_rot}x{h_rot})")
-                                else:
-                                    if frames_processed % 90 == 0:
-                                        log("[PySender] pyvirtualcam module not found.")
+                                py_cam = vcam.open_camera(w_rot, h_rot, FPS, py_cam_backend)
+                                py_cam_key = wanted
+                                log(f"[PySender] Virtual camera opened: {py_cam.device} "
+                                    f"({py_cam.width}x{py_cam.height}, backend={py_cam_backend})")
                             except Exception as e:
-                                if frames_processed % 90 == 0:
-                                    log(f"[PySender] Error opening camera: {e}. Make sure OBS -> Virtual Camera is started.")
+                                log(f"[PySender] Error opening virtual camera: {e}")
                                 py_cam = None
+                                py_cam_key = None
+                                py_cam_retry_at = frames_processed + 90
 
                         if py_cam:
                             try:
@@ -806,6 +807,7 @@ def main():
                             except Exception:
                                 pass
                             py_cam = None
+                            py_cam_key = None
                             log("[PySender] Virtual camera closed (disabled in config).")
 
                 # 9. Send to Web Preview (always active)

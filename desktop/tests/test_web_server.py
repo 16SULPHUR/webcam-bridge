@@ -77,3 +77,21 @@ def test_same_origin_post_allowed(server):
 def test_upload_rejects_non_images(server):
     resp, _ = request(server, "POST", "/api/upload_background?filename=evil.py", b"print(1)")
     assert resp.status == 400
+
+
+def test_vcam_status(server):
+    resp, data = request(server, "GET", "/api/vcam")
+    info = json.loads(data)
+    assert resp.status == 200
+    assert info["backend"] in ("builtin", "obs")
+    assert "installed" in info
+
+
+def test_vcam_install_uses_vcam_module(server, monkeypatch):
+    from webcam_bridge import vcam
+    calls = []
+    monkeypatch.setattr(vcam, "install", lambda: calls.append("install") or "ok")
+    resp, data = request(server, "POST", "/api/vcam/install")
+    assert resp.status == 200
+    assert json.loads(data)["message"] == "ok"
+    assert calls == ["install"]

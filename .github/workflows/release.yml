@@ -1,6 +1,7 @@
 name: Release
 
-# Push a tag like v0.2.0 to publish a release with the APK and desktop zip.
+# Push a tag like v0.2.0 to publish a release with the APK, the desktop zip
+# (virtual camera DLLs included) and the standalone camera DLL zip.
 # Optional repository secrets for a properly signed APK:
 #   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
 # Without them the APK is signed with a throwaway debug key (installable, but
@@ -14,10 +15,32 @@ permissions:
   contents: write
 
 jobs:
+  vcam:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - { arch: x64, platform: x64 }
+          - { arch: x86, platform: Win32 }
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -S vcam/windows -B build/vcam -A ${{ matrix.platform }}
+      - run: cmake --build build/vcam --config Release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vcam-${{ matrix.arch }}
+          path: build/vcam/Release/webcam_bridge_cam.dll
+          if-no-files-found: error
+
   release:
+    needs: vcam
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: vcam-*
+          path: vcam-dist
 
       - uses: actions/setup-java@v4
         with:
@@ -51,9 +74,20 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk "dist/webcam-bridge-${VERSION}.apk"
-          git archive --format=zip --prefix="webcam-bridge-${VERSION}/" \
+          # Standalone camera DLLs: x64/ and x86/webcam_bridge_cam.dll
+          mkdir -p staging/x64 staging/x86
+          cp vcam-dist/vcam-x64/webcam_bridge_cam.dll staging/x64/
+          cp vcam-dist/vcam-x86/webcam_bridge_cam.dll staging/x86/
+          (cd staging && zip -q -r ../dist/webcam-bridge-vcam.zip x64 x86)
+
+          # Desktop zip: tracked sources plus the prebuilt DLLs
+          PREFIX="webcam-bridge-${VERSION}"
+          git archive --format=zip --prefix="${PREFIX}/" \
             -o "dist/webcam-bridge-desktop-${VERSION}.zip" HEAD \
-            desktop scripts docs README.md LICENSE THIRD_PARTY_NOTICES.md CHANGELOG.md
+            desktop scripts docs vcam README.md LICENSE THIRD_PARTY_NOTICES.md CHANGELOG.md
+          mkdir -p "zipadd/${PREFIX}/desktop/webcam_bridge/bin"
+          cp -r staging/x64 staging/x86 "zipadd/${PREFIX}/desktop/webcam_bridge/bin/"
+          (cd zipadd && zip -q -r "../dist/webcam-bridge-desktop-${VERSION}.zip" "${PREFIX}")
           (cd dist && sha256sum * > SHA256SUMS.txt)
 
       - name: Publish release

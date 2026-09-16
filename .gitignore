@@ -14,6 +14,9 @@ config.json
 recordings/
 *.mp4
 
+# Virtual camera DLLs (built by CI, or `python -m webcam_bridge.fetch vcam`)
+desktop/webcam_bridge/bin/
+
 # Node (emoji builder)
 node_modules/
 

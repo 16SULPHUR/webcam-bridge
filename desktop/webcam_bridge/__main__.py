@@ -43,12 +43,41 @@ def parse_args(argv=None) -> argparse.Namespace:
                         help="dashboard port (default: %(default)s)")
     parser.add_argument("--no-tui", action="store_true", help="plain log output instead of the terminal UI")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+
+    sub = parser.add_subparsers(dest="command", metavar="COMMAND")
+    cam = sub.add_parser("camera", help="manage the built-in 'Webcam Bridge' virtual camera (Windows)")
+    cam.add_argument("action", choices=("install", "uninstall", "status"))
     return parser.parse_args(argv)
 
+
+def camera_command(action: str) -> int:
+    from . import vcam
+
+    try:
+        if action == "install":
+            print(vcam.install())
+        elif action == "uninstall":
+            print(vcam.uninstall())
+        else:
+            info = vcam.status()
+            if not info["supported"]:
+                print("The built-in camera is Windows-only; OBS / v4l2loopback is used on this platform.")
+                return 0
+            print(f'"{info["name"]}" camera: {"installed" if info["installed"] else "not installed"}')
+            for arch, state in info["arches"].items():
+                where = state["path"] or "-"
+                print(f"  {arch}: bundled={'yes' if state['bundled'] else 'no'}  "
+                      f"registered={'yes' if state['registered'] else 'no'}  {where}")
+    except vcam.VirtualCameraError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    return 0
 
 
 def main(argv=None) -> None:
     args = parse_args(argv)
+    if args.command == "camera":
+        sys.exit(camera_command(args.action))
     paths.ensure_user_dirs()
     ffmpeg_path = paths.resolve_ffmpeg()
 

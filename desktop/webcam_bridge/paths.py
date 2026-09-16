@@ -26,6 +26,7 @@ BUNDLED_BG_DIR   = os.path.join(ASSETS_DIR, "backgrounds")
 BUNDLED_EMOJI_DIR = os.path.join(ASSETS_DIR, "emoji")
 ONEKO_GIF        = os.path.join(WEB_DIR, "img", "oneko.gif")
 FRAME_SENDER     = os.path.join(PACKAGE_DIR, "frame_sender.py")
+VCAM_BUNDLED_DIR = os.path.join(PACKAGE_DIR, "bin")   # <arch>/webcam_bridge_cam.dll (built in CI)
 
 
 def _default_home() -> str:
@@ -51,6 +52,12 @@ RECORDINGS_DIR = os.path.abspath(
     os.environ.get("WEBCAM_BRIDGE_RECORDINGS")
     or os.path.join(os.path.expanduser("~"), "Videos", APP_NAME)
 )
+
+
+# Registered camera DLLs are loaded by other apps, possibly for other users, so
+# they are copied to a stable machine-wide location before registration.
+VCAM_INSTALL_DIR = os.path.join(
+    os.environ.get("ProgramData") or r"C:\ProgramData", APP_NAME, "vcam")
 
 
 def ensure_user_dirs() -> None:

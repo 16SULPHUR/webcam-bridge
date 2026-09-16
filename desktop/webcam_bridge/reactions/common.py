@@ -7,8 +7,6 @@ pulling in the vision stack.
 
 import os
 
-from .. import paths
-
 IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".webp", ".gif")
 EMOJI_DIRNAME = "emoji"
 
@@ -69,27 +67,5 @@ def renderer_status() -> dict:
     return {"available": True, "reason": "", "font": os.path.basename(font)}
 
 
-# ── MediaPipe Tasks models (only needed on mediapipe ≥ 1.0) ───────────────────
-
-MODEL_DIRS = (
-    os.environ.get("MEDIAPIPE_MODELS_DIR", ""),
-    paths.MODELS_DIR,
-)
-
-MODEL_URLS = {
-    "hand_landmarker.task":
-        "https://storage.googleapis.com/mediapipe-models/hand_landmarker/"
-        "hand_landmarker/float16/1/hand_landmarker.task",
-    "face_landmarker.task":
-        "https://storage.googleapis.com/mediapipe-models/face_landmarker/"
-        "face_landmarker/float16/1/face_landmarker.task",
-}
-
-
-def find_model(name: str) -> str | None:
-    for directory in MODEL_DIRS:
-        if directory:
-            path = os.path.join(directory, name)
-            if os.path.isfile(path):
-                return path
-    return None
+# MediaPipe Tasks models (mediapipe >= 1.0) live in models.py.
+from ..models import MODEL_URLS, find_model  # noqa: E402,F401

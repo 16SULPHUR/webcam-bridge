@@ -9,6 +9,7 @@ Environment overrides:
   WEBCAM_BRIDGE_HOME        user data directory (config, uploads, models, skins)
   WEBCAM_BRIDGE_RECORDINGS  where recordings and snapshots are written
   WEBCAM_BRIDGE_FFMPEG      explicit path to the ffmpeg executable
+                            (default: PATH, then the imageio-ffmpeg build)
   MEDIAPIPE_MODELS_DIR      extra directory searched for MediaPipe .task models
 """
 
@@ -89,7 +90,14 @@ def resolve_ffmpeg() -> str:
     local = os.path.join(DATA_DIR, "bin", "ffmpeg.exe" if sys.platform == "win32" else "ffmpeg")
     if os.path.isfile(local):
         return local
-    return shutil.which("ffmpeg") or "ffmpeg"
+    found = shutil.which("ffmpeg")
+    if found:
+        return found
+    try:  # pip-installed static build (imageio-ffmpeg dependency)
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return "ffmpeg"
 
 
 def safe_join(base: str, rel: str) -> str | None:

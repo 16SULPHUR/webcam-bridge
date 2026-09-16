@@ -1,7 +1,7 @@
 """
 fetch.py — Download optional third-party data into the user data directory.
 
-    python -m webcam_bridge.fetch models   # MediaPipe hand/face landmark models
+    python -m webcam_bridge.fetch models   # MediaPipe models (also downloaded on first use)
     python -m webcam_bridge.fetch skins    # Neko skin library for custom pets
     python -m webcam_bridge.fetch vcam     # prebuilt virtual camera DLLs (source checkouts)
     python -m webcam_bridge.fetch all
@@ -22,7 +22,7 @@ import urllib.request
 import zipfile
 
 from . import paths
-from .reactions.common import MODEL_URLS
+from .models import MODEL_URLS
 
 SKINS_TARBALL = "https://codeload.github.com/eliot-akira/neko/tar.gz/refs/heads/main"
 SKINS_SUBDIR = "2023-icon-library"

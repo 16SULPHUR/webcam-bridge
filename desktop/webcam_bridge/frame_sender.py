@@ -247,11 +247,9 @@ def segmenter_thread_func():
         try:
             mask_full = None
             if segmentation_engine == "mediapipe":
-                results = segmenter.process(frame_to_process)
-                if results.segmentation_mask is not None:
-                    mask_small = results.segmentation_mask
+                mask_small = segmenter.process(frame_to_process)
+                if mask_small is not None:
                     mask_full = cv2.resize(mask_small, (target_w, target_h), interpolation=cv2.INTER_LINEAR)
-                    # mediapipe returns [H, W] — already 2D
 
             elif segmentation_engine == "rvm":
                 mask_full = rvm_segmenter.process_frame(frame_to_process, rvm_downsample_ratio)
@@ -286,10 +284,10 @@ def load_mediapipe_worker():
     global segmenter, segmenter_loading
     log("[PySender] Loading MediaPipe Selfie Segmentation (landscape model)...")
     try:
-        import mediapipe as mp
-        mp_selfie = mp.solutions.selfie_segmentation
-        segmenter = mp_selfie.SelfieSegmentation(model_selection=1)
-        log("[PySender] MediaPipe Selfie Segmentation loaded successfully.")
+        from webcam_bridge.mp_compat import SelfieSegmenter
+        seg = SelfieSegmenter(log=log)
+        segmenter = seg
+        log(f"[PySender] MediaPipe Selfie Segmentation loaded ({seg.backend} backend).")
     except Exception as exc:
         log(f"[PySender] ERROR loading MediaPipe: {exc}")
     finally:

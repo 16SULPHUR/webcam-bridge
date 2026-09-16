@@ -16,6 +16,7 @@ Starts:
 
 import argparse
 import os
+import shutil
 import sys
 import signal
 import threading
@@ -80,6 +81,11 @@ def main(argv=None) -> None:
         sys.exit(camera_command(args.action))
     paths.ensure_user_dirs()
     ffmpeg_path = paths.resolve_ffmpeg()
+    if not (os.path.isfile(ffmpeg_path) or shutil.which(ffmpeg_path)):
+        print(f"Error: FFmpeg not found ({ffmpeg_path}).\n"
+              "Reinstall the bridge (scripts\\setup.bat), install FFmpeg on PATH, "
+              "or set WEBCAM_BRIDGE_FFMPEG to ffmpeg.exe.", file=sys.stderr)
+        sys.exit(1)
 
     print("=" * 56)
     print(f"  Webcam Bridge v{__version__}")

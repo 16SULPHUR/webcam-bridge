@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-17
+
+### Fixed
+- `start.bat` crashed when FFmpeg was not on `PATH`: FFmpeg is now installed with the bridge (imageio-ffmpeg),
+  and a missing FFmpeg gives a clear message instead of a traceback.
+- Background blur/replace and face touch-up did nothing with mediapipe 1.x (the default on new installs and
+  Python 3.13+); they now use the MediaPipe Tasks API when the legacy API is unavailable.
+- MediaPipe model files are downloaded automatically on first use.
+
 ## [0.1.0] - 2026-09-17
 
 First public release.

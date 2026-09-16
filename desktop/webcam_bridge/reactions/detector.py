@@ -4,8 +4,7 @@ detector.py — MediaPipe hand / face landmark extraction.
 Two backends, picked automatically:
   • mediapipe 0.10.x — the legacy mp.solutions Hands / FaceMesh graphs
   • mediapipe ≥ 1.0  — the Tasks API, which needs *.task model files
-                       (see common.MODEL_DIRS / MODEL_URLS, or run
-                       `python -m webcam_bridge.fetch models`)
+                       (downloaded on first use, see models.py)
 
 Only the models the enabled mappings need are created, so a gestures-only
 setup never pays for face landmarks.
@@ -16,8 +15,7 @@ import time
 
 import numpy as np
 
-from .. import paths
-from .common import MODEL_URLS, find_model
+from ..models import ensure_model
 from .triggers import Face, Hand
 
 
@@ -84,11 +82,7 @@ class _TasksBackend:
         self._last_ts = -1
 
         def options(model, cls, opt_cls, **kw):
-            path = find_model(model)
-            if not path:
-                raise FileNotFoundError(
-                    f"{model} not found — download it from {MODEL_URLS[model]} "
-                    f"into {paths.MODELS_DIR} — or run: python -m webcam_bridge.fetch models")
+            path = ensure_model(model, _log)
             return cls.create_from_options(opt_cls(
                 base_options=mp_python.BaseOptions(model_asset_path=path),
                 running_mode=vision.RunningMode.VIDEO, **kw))

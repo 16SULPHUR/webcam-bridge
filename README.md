@@ -36,8 +36,8 @@ More detail in [docs/architecture.md](docs/architecture.md).
 |---|---|
 | Phone | Android 6.0+ with [USB debugging](https://developer.android.com/studio/debug/dev-options) enabled |
 | Desktop | Windows 10/11 (Linux/macOS may work — see [below](#linux--macos)) |
-| Python | 3.10 – 3.12 ([python.org](https://www.python.org/downloads/)) |
-| FFmpeg | On `PATH` ([ffmpeg.org](https://ffmpeg.org/download.html)), or set `WEBCAM_BRIDGE_FFMPEG` |
+| Python | 3.10 or newer ([python.org](https://www.python.org/downloads/) — tick **Add python.exe to PATH**) |
+| FFmpeg | Installed automatically (imageio-ffmpeg); a system FFmpeg on `PATH` is used if present |
 | ADB | [Android platform-tools](https://developer.android.com/tools/releases/platform-tools) on `PATH` |
 | Virtual camera | Built in on Windows (one admin prompt at setup). Fallback: [OBS Studio](https://obsproject.com) 26+ |
 
@@ -76,12 +76,12 @@ webcam-bridge camera install | uninstall | status
 | `--no-tui` | off | Plain log output instead of the terminal UI |
 | `WEBCAM_BRIDGE_HOME` | `%LOCALAPPDATA%\WebcamBridge` | Settings, uploaded backgrounds and memes, models, pet skins |
 | `WEBCAM_BRIDGE_RECORDINGS` | `~\Videos\WebcamBridge` | Recordings and snapshots |
-| `WEBCAM_BRIDGE_FFMPEG` | `ffmpeg` on `PATH` | Path to the FFmpeg executable |
+| `WEBCAM_BRIDGE_FFMPEG` | `ffmpeg` on `PATH`, else the bundled build | Path to the FFmpeg executable |
 
 ### Optional downloads
 
 ```bat
-desktop\.venv\Scripts\python -m webcam_bridge.fetch models   :: MediaPipe models (needed with mediapipe >= 1.0)
+desktop\.venv\Scripts\python -m webcam_bridge.fetch models   :: MediaPipe models (otherwise downloaded on first use)
 desktop\.venv\Scripts\python -m webcam_bridge.fetch skins    :: Neko skins for custom pets
 ```
 
@@ -136,7 +136,8 @@ on macOS. Use `scripts/start.sh`. Reports and fixes are welcome!
 | Dashboard says *Android disconnected* | Make sure the app is streaming and `adb forward tcp:8080 tcp:8080` ran (`scripts\start.bat` does this) |
 | No "Webcam Bridge" camera in apps | Run `webcam-bridge camera install`, restart the app, and start the bridge before selecting the camera |
 | Camera shows a dark frozen image | The bridge stopped — start it again |
-| `ffmpeg` not found | Add FFmpeg's `bin` folder to `PATH` or set `WEBCAM_BRIDGE_FFMPEG` |
+| `FFmpeg not found` | Re-run `scripts\setup.bat`, or set `WEBCAM_BRIDGE_FFMPEG` |
+| `setup.bat` says Python is required | Install Python from python.org; the Microsoft Store `python` alias doesn't work |
 | Phone remote control can't connect | Re-run `scripts\start.bat` (sets up `adb reverse`) or use Wi-Fi mode |
 | Background removal is slow | Use the MediaPipe engine, lower the resolution, or install the `rvm` extra on an NVIDIA GPU |
 | Camera permission denied | Android Settings → Apps → Webcam Bridge → Permissions |

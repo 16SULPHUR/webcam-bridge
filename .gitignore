@@ -41,3 +41,5 @@ captures/
 Thumbs.db
 desktop.ini
 *.lnk
+
+.webcam-bridge-signing/

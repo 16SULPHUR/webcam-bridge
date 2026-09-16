@@ -16,7 +16,8 @@ following third-party material.
 
 | Material | When | License |
 |---|---|---|
-| [MediaPipe](https://github.com/google-ai-edge/mediapipe) and its hand / face landmarker models | `pip install`; `python -m webcam_bridge.fetch models` | Apache-2.0 |
+| [MediaPipe](https://github.com/google-ai-edge/mediapipe) and its selfie segmenter / hand / face landmarker models | `pip install`; models on first use | Apache-2.0 |
+| FFmpeg static build via [imageio-ffmpeg](https://github.com/imageio/imageio-ffmpeg) | `pip install` | FFmpeg: GPL/LGPL; wrapper: BSD-2-Clause |
 | [RobustVideoMatting](https://github.com/PeterL1n/RobustVideoMatting) model | Fetched through `torch.hub` only when you choose the RVM segmentation engine | GPL-3.0 |
 | Neko skin library from [eliot-akira/neko](https://github.com/eliot-akira/neko) | `python -m webcam_bridge.fetch skins` | No license stated — personal use only; not redistributed by this project |
 | Inter and JetBrains Mono fonts | Loaded by the dashboard from Google Fonts | SIL Open Font License 1.1 |

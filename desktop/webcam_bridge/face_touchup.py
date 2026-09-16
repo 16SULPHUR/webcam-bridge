@@ -65,15 +65,9 @@ class FaceTouchup:
 
     def _load(self):
         try:
-            import mediapipe as mp
-            self._face_mesh = mp.solutions.face_mesh.FaceMesh(
-                static_image_mode=False,
-                max_num_faces=1,
-                refine_landmarks=True,
-                min_detection_confidence=0.5,
-                min_tracking_confidence=0.5,
-            )
-            sys.stderr.write("[FaceTouchup] MediaPipe Face Mesh loaded.\n")
+            from .mp_compat import FaceMesh
+            self._face_mesh = FaceMesh(log=lambda m: sys.stderr.write(m + "\n"))
+            sys.stderr.write(f"[FaceTouchup] Face landmarks loaded ({self._face_mesh.backend} backend).\n")
         except Exception as e:
             sys.stderr.write(f"[FaceTouchup] ERROR loading Face Mesh: {e}\n")
 
@@ -95,12 +89,9 @@ class FaceTouchup:
 
         try:
             h, w = frame_rgb.shape[:2]
-            results = self._face_mesh.process(frame_rgb)
-
-            if not results.multi_face_landmarks:
+            lm = self._face_mesh.landmarks(frame_rgb)
+            if lm is None:
                 return frame_rgb
-
-            lm = results.multi_face_landmarks[0].landmark
 
             # Calculate face bounding box from outer face oval
             oval = _pts(lm, FACE_OVAL, w, h)
@@ -146,10 +137,10 @@ class FaceTouchup:
             small_w = max(4, crop_w // 2)
             small_h = max(4, crop_h // 2)
             small_crop = cv2.resize(face_crop, (small_w, small_h), interpolation=cv2.INTER_LINEAR)
-            
+
             # Stronger bilateral filter parameters for a distinct, high-quality smooth look
             smoothed_small = cv2.bilateralFilter(small_crop, d=7, sigmaColor=85, sigmaSpace=85)
-            
+
             # Upscale back to cropped resolution
             smoothed_face = cv2.resize(smoothed_small, (crop_w, crop_h), interpolation=cv2.INTER_LINEAR)
 

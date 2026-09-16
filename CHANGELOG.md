@@ -6,22 +6,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-### Added
-- Built-in **Webcam Bridge** virtual camera for Windows (DirectShow, based on softcam) — OBS is no longer required.
-  Manage it with `webcam-bridge camera install|uninstall|status` or from the dashboard's Camera page.
-- `vcamBackend` setting (Automatic / Webcam Bridge / OBS) and `python -m webcam_bridge.fetch vcam`.
-
-## [0.1.0] - 2026-09-16
+## [0.1.0] - 2026-09-17
 
 First public release.
 
 ### Added
-- Android app streaming the phone camera as H.264 over USB, with remote-control screen and home-screen widget.
-- Desktop bridge: virtual camera output, web dashboard, colour/zoom/sharpness controls, background blur/replace
+- Android app (Android 6.0+) streaming the phone camera as H.264 over USB, with remote-control screen and
+  home-screen widget.
+- Desktop bridge: web dashboard, colour/zoom/sharpness controls, background blur/replace
   (MediaPipe or Robust Video Matting), face touch-up, recording and snapshots.
+- Built-in **Webcam Bridge** virtual camera for Windows (DirectShow, based on softcam) — OBS is optional.
+  Manage it with `webcam-bridge camera install|uninstall|status` or from the dashboard's Camera page;
+  the `vcamBackend` setting chooses between Automatic, Webcam Bridge and OBS.
 - Gesture and expression reaction overlays with a bundled Twemoji pack.
 - Desktop pets (oneko) with optional downloadable skins.
-- `webcam-bridge` CLI with `--host`, `--port` and `--no-tui`; `python -m webcam_bridge.fetch` for optional downloads.
+- `webcam-bridge` CLI with `--host`, `--port` and `--no-tui`; `python -m webcam_bridge.fetch` for optional
+  downloads (models, skins, camera DLLs).
 
 ### Security
 - Dashboard binds to localhost by default, rejects cross-origin POSTs and no longer sends wildcard CORS headers.

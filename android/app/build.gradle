@@ -1,17 +1,16 @@
 // app/build.gradle
 plugins {
     id 'com.android.application'
-    id 'org.jetbrains.kotlin.android'
 }
 
 android {
     namespace 'io.github.sulphur16.webcambridge'
-    compileSdk 34
+    compileSdk 37
 
     defaultConfig {
         applicationId "io.github.sulphur16.webcambridge"
-        minSdk 21          // Camera2 + MediaCodec H.264 available from API 21
-        targetSdk 34
+        minSdk 23          // Android 6.0 — required by current AndroidX / Material
+        targetSdk 36
         versionCode 1
         versionName "0.1.0"
     }
@@ -38,12 +37,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = '1.8'
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     buildFeatures {
@@ -52,8 +47,8 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.12.0'
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.11.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.core:core-ktx:1.19.0'
+    implementation 'androidx.appcompat:appcompat:1.8.0'
+    implementation 'com.google.android.material:material:1.14.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.2'
 }

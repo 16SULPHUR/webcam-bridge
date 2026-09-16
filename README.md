@@ -34,7 +34,7 @@ More detail in [docs/architecture.md](docs/architecture.md).
 
 | | |
 |---|---|
-| Phone | Android 5.0+ with [USB debugging](https://developer.android.com/studio/debug/dev-options) enabled |
+| Phone | Android 6.0+ with [USB debugging](https://developer.android.com/studio/debug/dev-options) enabled |
 | Desktop | Windows 10/11 (Linux/macOS may work — see [below](#linux--macos)) |
 | Python | 3.10 – 3.12 ([python.org](https://www.python.org/downloads/)) |
 | FFmpeg | On `PATH` ([ffmpeg.org](https://ffmpeg.org/download.html)), or set `WEBCAM_BRIDGE_FFMPEG` |
@@ -110,7 +110,7 @@ artwork is documented in [docs/reactions.md](docs/reactions.md).
 
 ## Building the Android app
 
-Requires JDK 17 and the Android SDK (API 34). Android Studio works out of the
+Requires JDK 17 and the Android SDK (API 37). Android Studio works out of the
 box — open the `android/` folder. From the command line:
 
 ```bat

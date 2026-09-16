@@ -633,10 +633,10 @@ def main():
                 while len(custom_animators) > len(custom_pets_config):
                     custom_animators.pop()
 
-                # Preload custom skins for each animator slot
+                # Preload custom skins for each enabled animator slot
                 for idx, pet_cfg in enumerate(custom_pets_config):
-                    skin_name = pet_cfg.get("skin", "socks")
-                    custom_animators[idx].preload_custom_skin(skin_name)
+                    if pet_cfg.get("enabled", False):
+                        custom_animators[idx].preload_custom_skin(pet_cfg.get("skin", "socks"))
 
             # Lazy-load segmenters when any background effect is needed
             needs_segmentation = bg_mode in ("blur", "replace")

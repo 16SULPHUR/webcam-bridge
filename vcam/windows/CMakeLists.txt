@@ -60,6 +60,6 @@ add_library(webcam_bridge_cam SHARED
 target_include_directories(webcam_bridge_cam PRIVATE ${SOFTCAM}/softcam)
 target_compile_options(webcam_bridge_cam PRIVATE /W4 /permissive-)
 target_link_libraries(webcam_bridge_cam PRIVATE
-  softcamcore winmm ole32 oleaut32 uuid advapi32 user32 gdi32)
+  softcamcore strmiids winmm ole32 oleaut32 uuid advapi32 user32 gdi32)
 
 install(TARGETS webcam_bridge_cam RUNTIME DESTINATION .)

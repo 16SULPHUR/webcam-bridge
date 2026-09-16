@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webcam Bridge</title>
+  <meta name="description" content="Control dashboard for the Webcam Bridge — live preview, camera settings, virtual background, effects and gesture reactions.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2338bdf8'/%3E%3Ccircle cx='16' cy='16' r='7' fill='%230a0c11'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/reactions.css">
+</head>
+<body>
+
+<div class="app">
+  <aside class="nav" data-component="nav"></aside>
+
+  <div class="main">
+    <header class="topbar" data-component="topbar"></header>
+
+    <div class="pages">
+      <section class="page" id="page-live"       data-component="page_live"></section>
+      <section class="page" id="page-camera"     data-component="page_camera"></section>
+      <section class="page" id="page-image"      data-component="page_image"></section>
+      <section class="page" id="page-background" data-component="page_background"></section>
+      <section class="page" id="page-effects"    data-component="page_effects"></section>
+      <section class="page" id="page-reactions"  data-component="page_reactions"></section>
+      <section class="page" id="page-logs"       data-component="page_logs"></section>
+    </div>
+  </div>
+</div>
+
+<div data-component="modals"></div>
+<video id="pip-video" style="display:none" autoplay muted playsinline></video>
+
+<script src="js/stream.js"></script>
+<script src="js/pets.js"></script>
+<script src="js/reactions.js"></script>
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

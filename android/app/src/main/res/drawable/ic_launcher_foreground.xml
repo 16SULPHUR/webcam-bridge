@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Simple camera icon for the launcher foreground -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Camera body -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M76,40H66l-4,-7H46l-4,7H32c-2.2,0-4,1.8-4,4v30c0,2.2 1.8,4 4,4h44c2.2,0 4,-1.8 4,-4V44C80,41.8 78.2,40 76,40zM54,70c-6.6,0-12,-5.4-12,-12s5.4,-12 12,-12s12,5.4 12,12S60.6,70 54,70z"/>
+    <!-- Lens (circle drawn as a path — Android VectorDrawable has no circle element) -->
+    <path
+        android:fillColor="#6200EE"
+        android:pathData="M54,51 a7,7 0 1,0 0.001,0 Z"/>
+</vector>

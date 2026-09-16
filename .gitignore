@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# User data that may end up next to the code in dev setups
+config.json
+recordings/
+*.mp4
+
+# Node (emoji builder)
+node_modules/
+
+# Android / Gradle
+.gradle/
+android/app/build/
+android/build/
+local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
+captures/
+.externalNativeBuild/
+.cxx/
+
+# IDEs / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.lnk

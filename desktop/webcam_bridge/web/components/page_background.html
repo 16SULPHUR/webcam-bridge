@@ -1,0 +1,57 @@
+<div class="page-head">
+  <h2>Background</h2>
+  <p>Blur or replace what is behind you, using on-device segmentation.</p>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h3>Mode</h3>
+    <div class="spacer"></div>
+    <div class="seg" id="bg-mode-seg">
+      <button data-mode="none" onclick="Config.setBgMode('none')">Off</button>
+      <button data-mode="blur" onclick="Config.setBgMode('blur')">Blur</button>
+      <button data-mode="replace" onclick="Config.setBgMode('replace')">Replace</button>
+    </div>
+  </div>
+
+  <div class="field" id="bg-blur-field">
+    <div class="field-row" style="display:flex">
+      <label>Blur amount</label>
+      <span class="val" data-out="blur">Off</span>
+    </div>
+    <input type="range" data-bind="blur" min="0" max="25" step="1">
+  </div>
+
+  <div id="bg-replace-field">
+    <div class="field field-row">
+      <label>Backgrounds</label>
+      <span>
+        <button class="btn sm" onclick="document.getElementById('bg-upload').click()">Upload image</button>
+        <input type="file" id="bg-upload" accept="image/*" style="display:none" onchange="Config.uploadBackground(event)">
+      </span>
+    </div>
+    <div class="thumbs" id="bg-grid"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>Segmentation engine</h3></div>
+  <div class="field field-row">
+    <label>Engine</label>
+    <select data-bind="segmentationEngine">
+      <option value="mediapipe">MediaPipe — fast</option>
+      <option value="rvm">RVM — best quality</option>
+    </select>
+  </div>
+  <div class="field" id="rvm-field">
+    <div class="field-row" style="display:flex">
+      <label>RVM quality <span class="hint">— higher costs more GPU</span></label>
+      <span class="val" data-out="rvmDownsampleRatio">0.25×</span>
+    </div>
+    <input type="range" data-bind="rvmDownsampleRatio" min="10" max="50" step="5">
+  </div>
+  <div class="note" id="rvm-note">
+    Robust Video Matting carries state between frames, so edges stay stable without a background
+    reference shot. Needs PyTorch; falls back to MediaPipe if it can't load.
+  </div>
+</div>

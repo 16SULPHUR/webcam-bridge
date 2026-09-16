@@ -1,0 +1,44 @@
+<div class="page-head">
+  <h2>Effects</h2>
+  <p>Skin smoothing and the desktop pets that live on your video.</p>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h3>Face touch-up</h3>
+    <p>Smooths skin from Face Mesh landmarks — eyes, lips and brows stay sharp.</p>
+    <div class="spacer"></div>
+    <label class="switch"><input type="checkbox" data-bind="faceTouchupEnabled"><i></i></label>
+  </div>
+  <div class="field" id="touchup-field">
+    <div class="field-row" style="display:flex">
+      <label>Strength</label>
+      <span class="val" data-out="faceTouchupStrength">35%</span>
+    </div>
+    <input type="range" data-bind="faceTouchupStrength" min="0" max="100" step="5">
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h3>Oneko pet 🐱</h3>
+    <p>The classic cat, chasing along the bottom of your frame.</p>
+    <div class="spacer"></div>
+    <label class="switch"><input type="checkbox" data-bind="onekoEnabled"><i></i></label>
+  </div>
+  <div class="field">
+    <div class="field-row" style="display:flex">
+      <label>Pet size</label>
+      <span class="val" data-out="onekoSize">2.0×</span>
+    </div>
+    <input type="range" data-bind="onekoSize" min="1" max="4" step="0.1">
+  </div>
+
+  <div class="field">
+    <div class="field-row" style="display:flex;margin-bottom:8px">
+      <label>Custom skin pets</label>
+      <button class="btn sm" onclick="Pets.add()">Add pet</button>
+    </div>
+    <div id="pets-list" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>

@@ -1,0 +1,83 @@
+<div class="page-head">
+  <h2>Reactions 🎭</h2>
+  <p>Gestures and expressions drop emoji or memes onto the stream. Everything about the feature lives here.</p>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h3>Reaction overlays</h3>
+    <p>Off means nothing loads — no models, no detection thread.</p>
+    <div class="spacer"></div>
+    <label class="switch"><input type="checkbox" id="rx-master" onchange="Reactions.setEnabled(this.checked)"><i></i></label>
+  </div>
+
+  <div class="field field-row">
+    <label>Show tracking on preview <span class="hint">— skeleton + live matches, dashboard only</span></label>
+    <label class="switch"><input type="checkbox" id="rx-tracking" onchange="Reactions.setTracking(this.checked)"><i></i></label>
+  </div>
+
+  <div class="stat-row" id="rx-live" style="margin-top:12px">
+    <div class="stat"><b id="rx-live-hands">0</b><span>hands</span></div>
+    <div class="stat"><b id="rx-live-faces">0</b><span>faces</span></div>
+    <div class="stat"><b id="rx-live-fps">0</b><span>detect/s</span></div>
+    <div class="stat"><b id="rx-live-overlays">0</b><span>on screen</span></div>
+    <div class="stat"><b id="rx-live-match">—</b><span>matching now</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h3>Detection</h3><p>Raise hold frames if things fire by accident.</p></div>
+  <div class="grid three">
+    <div class="rx-field">
+      <label>Detection rate <span class="val" id="rx-fps-val">12 fps</span></label>
+      <input type="range" id="rx-fps" min="4" max="30" step="1" oninput="Reactions.onGlobal('detectionFps', this.value)">
+    </div>
+    <div class="rx-field">
+      <label>Sensitivity <span class="val" id="rx-sens-val">1.00×</span></label>
+      <input type="range" id="rx-sens" min="0.6" max="1.6" step="0.05" oninput="Reactions.onGlobal('sensitivity', this.value)">
+    </div>
+    <div class="rx-field">
+      <label>Hold frames <span class="val" id="rx-hold-val">2</span></label>
+      <input type="range" id="rx-hold" min="1" max="6" step="1" oninput="Reactions.onGlobal('holdFrames', this.value)">
+    </div>
+    <div class="rx-field">
+      <label>Cooldown <span class="val" id="rx-cooldown-val">1800 ms</span></label>
+      <input type="range" id="rx-cooldown" min="200" max="6000" step="100" oninput="Reactions.onGlobal('cooldownMs', this.value)">
+    </div>
+    <div class="rx-field">
+      <label>Max on screen <span class="val" id="rx-max-val">4</span></label>
+      <input type="range" id="rx-max" min="1" max="8" step="1" oninput="Reactions.onGlobal('maxConcurrent', this.value)">
+    </div>
+    <div class="rx-field">
+      <label>Overall size <span class="val" id="rx-scale-val">1.00×</span></label>
+      <input type="range" id="rx-scale" min="0.4" max="2" step="0.05" oninput="Reactions.onGlobal('globalScale', this.value)">
+    </div>
+  </div>
+  <div class="field field-row" style="margin-top:6px">
+    <label>Burn trigger name into the frame <span class="hint">— for tuning</span></label>
+    <label class="switch"><input type="checkbox" id="rx-showlabel" onchange="Reactions.onGlobal('showLabel', this.checked)"><i></i></label>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h3>Reactions</h3>
+    <div class="spacer"></div>
+    <button class="btn primary sm" onclick="Reactions.addMapping()">Add reaction</button>
+    <button class="btn sm" onclick="document.getElementById('rx-upload-input').click()">Upload artwork</button>
+    <button class="btn sm danger" onclick="Reactions.restoreDefaults()">Restore defaults</button>
+    <input type="file" id="rx-upload-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none" onchange="Reactions.uploadAsset(event)">
+  </div>
+
+  <div class="rx-list" id="rx-list"></div>
+
+  <div class="rx-picker" id="rx-picker">
+    <div class="rx-row" style="justify-content:space-between;margin-bottom:6px">
+      <span class="hint">Bundled emoji — click to use</span>
+      <button class="btn icon" onclick="Reactions.closePicker()">✕</button>
+    </div>
+    <div class="rx-picker-grid" id="rx-picker-grid"></div>
+  </div>
+
+  <div class="note" id="rx-note" style="margin-top:12px"></div>
+</div>

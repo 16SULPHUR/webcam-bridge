@@ -1,0 +1,15 @@
+<div class="page-head">
+  <h2>Logs</h2>
+  <p>Live output from the bridge, FFmpeg and the frame processor.</p>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h3>Stream</h3>
+    <div class="spacer"></div>
+    <input type="text" id="log-filter" placeholder="Filter…" style="min-width:150px" oninput="App.renderLogs()">
+    <button class="btn sm" id="log-pause" onclick="App.toggleLogPause()">Pause</button>
+    <button class="btn sm" onclick="App.clearLogs()">Clear</button>
+  </div>
+  <div class="logbox" id="logbox"></div>
+</div>

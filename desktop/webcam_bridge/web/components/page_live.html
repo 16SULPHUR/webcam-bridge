@@ -1,0 +1,73 @@
+<div class="page-head">
+  <h2>Live</h2>
+  <p>What your virtual camera is sending right now.</p>
+</div>
+
+<div class="live-grid">
+  <div>
+    <div class="stage" id="stage" ondblclick="Stream.toggleFullscreen()">
+      <div class="stage-empty" id="feed-placeholder">
+        <div class="stage-ring"></div>
+        <strong>Waiting for the phone stream</strong>
+        <span>Start streaming in the Android app, then run <code>adb forward tcp:8080 tcp:8080</code>.</span>
+      </div>
+      <img id="feed-img" src="" alt="Live camera feed" style="display:none">
+      <div class="stage-tag" id="feed-badge">OFFLINE</div>
+      <div class="stage-fps" id="overlay-fps" style="display:none">-- fps</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn rec" id="btn-record" onclick="Stream.toggleRecording()">
+        <span class="dot" id="record-dot"></span><span id="record-label">Record</span>
+      </button>
+      <button class="btn" onclick="Stream.snapshot()">Snapshot</button>
+      <button class="btn" onclick="Stream.togglePiP()">Float window</button>
+      <button class="btn" onclick="Stream.toggleFullscreen()">Fullscreen</button>
+      <button class="btn" onclick="Stream.reconnect()">Restart pipeline</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-head"><h3>Quick toggles</h3></div>
+      <div class="field field-row">
+        <label>Mirror image</label>
+        <label class="switch"><input type="checkbox" data-bind="mirror"><i></i></label>
+      </div>
+      <div class="field field-row">
+        <label>Virtual camera</label>
+        <label class="switch"><input type="checkbox" data-bind="vcamEnabled"><i></i></label>
+      </div>
+      <div class="field field-row">
+        <label>Reactions 🎭</label>
+        <label class="switch"><input type="checkbox" id="rx-quick-toggle" onchange="Reactions.setEnabled(this.checked)"><i></i></label>
+      </div>
+      <div class="field field-row">
+        <label>Show tracking</label>
+        <label class="switch"><input type="checkbox" id="rx-quick-tracking" onchange="Reactions.setTracking(this.checked)"><i></i></label>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Stream</h3><div class="spacer"></div><span class="tag" id="health-vcam">VCam off</span></div>
+      <div class="stat-row">
+        <div class="stat"><b id="stat-res">—</b><span>resolution</span></div>
+        <div class="stat"><b id="stat-bitrate">0.0</b><span>KB/s</span></div>
+        <div class="stat"><b id="stat-frames">0</b><span>frames</span></div>
+        <div class="stat"><b id="stat-h264">0</b><span>MB in</span></div>
+      </div>
+      <div class="bar"><i id="health-signal" style="width:0%"></i></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Phone</h3><div class="spacer"></div><span class="tag" id="phone-model">—</span></div>
+      <div class="stat-row">
+        <div class="stat"><b id="phone-battery">—</b><span><span id="phone-battery-icon">🔋</span> battery</span></div>
+        <div class="stat"><b id="phone-temp">—</b><span>temp</span></div>
+        <div class="stat"><b id="phone-uptime">—</b><span>uptime</span></div>
+        <div class="stat"><b id="phone-version">—</b><span>system</span></div>
+      </div>
+      <div class="bar"><i id="phone-battery-bar" style="width:0%"></i></div>
+    </div>
+  </div>
+</div>

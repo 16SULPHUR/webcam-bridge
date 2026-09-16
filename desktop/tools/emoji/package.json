@@ -1,0 +1,15 @@
+{
+  "name": "webcam-bridge-emoji-builder",
+  "private": true,
+  "description": "Rasterizes Twemoji SVGs into the bundled reaction emoji pack",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2"
+  }
+}

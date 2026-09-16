@@ -1,0 +1,17 @@
+<!-- Skin browser for custom pets -->
+<div class="modal" id="skin-modal" onclick="if (event.target === this) Pets.closeBrowser()">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Choose a pet skin</h3>
+      <input type="text" id="skin-search" placeholder="Search…" style="min-width:120px" oninput="Pets.renderBrowser()">
+      <div class="seg">
+        <button id="skin-filter-all" class="active" onclick="Pets.setFilter('all')">All</button>
+        <button id="skin-filter-fav" onclick="Pets.setFilter('fav')">♥</button>
+      </div>
+      <button class="btn icon" onclick="Pets.closeBrowser()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="skin-grid" id="skin-grid"></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "webcam-bridge"
+dynamic = ["version"]
+description = "Use your Android phone as a USB webcam — desktop bridge with virtual camera, backgrounds and reactions"
+readme = "../README.md"
+license = "MIT"
+authors = [{ name = "Webcam Bridge contributors" }]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Multimedia :: Video :: Capture",
+]
+dependencies = [
+    "numpy>=1.24",
+    "opencv-python>=4.8",
+    "pyvirtualcam>=0.11",
+    "mediapipe>=0.10.14",
+    "pillow>=10.0",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+# Robust Video Matting segmentation. For NVIDIA GPUs install torch from
+# https://pytorch.org/get-started/locally/ first.
+rvm = ["torch>=2.1", "torchvision>=0.16"]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[project.scripts]
+webcam-bridge = "webcam_bridge.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/16SULPHUR/webcam-bridge"
+Issues = "https://github.com/16SULPHUR/webcam-bridge/issues"
+
+[tool.setuptools.dynamic]
+version = { attr = "webcam_bridge.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["webcam_bridge*"]
+
+[tool.setuptools.package-data]
+webcam_bridge = ["web/**/*", "assets/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["tools/emoji/node_modules"]
+
+[tool.ruff.lint]
+# Correctness-focused: undefined names, unused imports, syntax errors.
+select = ["F", "E9"]

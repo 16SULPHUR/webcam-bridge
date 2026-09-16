@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    AndroidManifest.xml
+
+    Permissions required:
+      - CAMERA: to capture frames from the back camera
+      - INTERNET: to run the TCP server (even on localhost, Android requires this)
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Required: Camera access -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Required: TCP server socket -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Any camera works; a back camera is preferred but not required -->
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="true" />
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.USBWebcamBridge"
+        android:usesCleartextTraffic="true">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ControlActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.USBWebcamBridge.NoActionBar" />
+
+        <receiver
+            android:name=".ControlWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="io.github.sulphur16.webcambridge.ACTION_WIDGET_CONTROL" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_control_info" />
+        </receiver>
+
+    </application>
+
+</manifest>

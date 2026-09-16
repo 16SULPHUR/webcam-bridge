@@ -1,0 +1,76 @@
+/* reactions.css — reaction mapping list, emoji picker, detection fields */
+
+.rx-field { display: flex; flex-direction: column; gap: 6px; }
+.rx-field > label {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  font-size: 12px; color: var(--text-dim);
+}
+.rx-field input[type=range] { width: 100%; }
+
+.rx-list { display: flex; flex-direction: column; gap: 8px; }
+
+.rx-card {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.rx-card.off { opacity: 0.48; }
+
+.rx-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rx-row.wrap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 9px 12px;
+}
+
+.rx-art {
+  width: 34px; height: 34px; flex: 0 0 34px;
+  border-radius: var(--r-sm);
+  background: var(--surface-3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; line-height: 1; overflow: hidden;
+}
+.rx-art img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+.rx-kind {
+  font-size: 9.5px; padding: 3px 8px; border-radius: 20px; white-space: nowrap;
+  background: rgba(56, 189, 248, 0.13); color: var(--accent);
+}
+.rx-kind.face { background: rgba(244, 114, 182, 0.13); color: var(--pink); }
+.rx-kind.hands { background: rgba(167, 139, 250, 0.15); color: var(--violet); }
+
+.rx-select, .rx-input {
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  padding: 6px 9px; font-size: 12px; font-family: inherit;
+  outline: none; min-width: 0; width: 100%;
+}
+.rx-select:focus, .rx-input:focus { border-color: var(--accent); }
+.rx-select:disabled { opacity: 0.45; }
+.rx-input.emoji { text-align: center; font-size: 17px; padding: 3px 4px; width: 50px; flex: 0 0 50px; }
+
+.rx-warn {
+  font-size: 10.5px; color: var(--warn);
+  background: rgba(251, 191, 36, 0.08); border-radius: var(--r-sm); padding: 5px 8px;
+}
+
+.rx-picker {
+  display: none;
+  margin-top: 12px; padding: 10px;
+  border: 1px solid var(--line-strong); border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.rx-picker.open { display: block; }
+.rx-picker-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+  gap: 4px; max-height: 160px; overflow-y: auto;
+}
+.rx-picker-grid button {
+  background: var(--surface-3); border: 1px solid transparent; border-radius: var(--r-sm);
+  font-size: 19px; padding: 4px 0; cursor: pointer; line-height: 1.2;
+}
+.rx-picker-grid button:hover { border-color: var(--accent); background: rgba(56, 189, 248, 0.16); }

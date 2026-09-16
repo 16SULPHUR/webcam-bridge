@@ -1,0 +1,48 @@
+<div class="page-head">
+  <h2>Image</h2>
+  <p>Colour and sharpness, applied per frame before the virtual camera.</p>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h3>Adjustments</h3>
+    <div class="spacer"></div>
+    <button class="btn sm" onclick="Config.resetProcessing()">Reset all</button>
+  </div>
+
+  <div class="field">
+    <div class="field-row" style="display:flex">
+      <label>Brightness</label>
+      <span><span class="val" data-out="brightness">0.00</span>
+      <button class="btn sm" onclick="Config.resetSingle('brightness')">Reset</button></span>
+    </div>
+    <input type="range" data-bind="brightness" min="-1" max="1" step="0.05">
+  </div>
+
+  <div class="field">
+    <div class="field-row" style="display:flex">
+      <label>Contrast</label>
+      <span><span class="val" data-out="contrast">1.00</span>
+      <button class="btn sm" onclick="Config.resetSingle('contrast')">Reset</button></span>
+    </div>
+    <input type="range" data-bind="contrast" min="0.5" max="2" step="0.05">
+  </div>
+
+  <div class="field">
+    <div class="field-row" style="display:flex">
+      <label>Saturation</label>
+      <span><span class="val" data-out="saturation">1.00</span>
+      <button class="btn sm" onclick="Config.resetSingle('saturation')">Reset</button></span>
+    </div>
+    <input type="range" data-bind="saturation" min="0" max="2" step="0.05">
+  </div>
+
+  <div class="field">
+    <div class="field-row" style="display:flex">
+      <label>Sharpness</label>
+      <span><span class="val" data-out="sharpness">0.0</span>
+      <button class="btn sm" onclick="Config.resetSingle('sharpness')">Reset</button></span>
+    </div>
+    <input type="range" data-bind="sharpness" min="0" max="2" step="0.1">
+  </div>
+</div>

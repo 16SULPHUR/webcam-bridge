@@ -1,0 +1,66 @@
+name: Release
+
+# Push a tag like v0.2.0 to publish a release with the APK and desktop zip.
+# Optional repository secrets for a properly signed APK:
+#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+# Without them the APK is signed with a throwaway debug key (installable, but
+# users must uninstall before updating to a differently signed build).
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::No signing secrets configured; APK will be debug-signed."
+          fi
+
+      - name: Build APK
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Package artifacts
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          cp android/app/build/outputs/apk/release/app-release.apk "dist/webcam-bridge-${VERSION}.apk"
+          git archive --format=zip --prefix="webcam-bridge-${VERSION}/" \
+            -o "dist/webcam-bridge-desktop-${VERSION}.zip" HEAD \
+            desktop scripts docs README.md LICENSE THIRD_PARTY_NOTICES.md CHANGELOG.md
+          (cd dist && sha256sum * > SHA256SUMS.txt)
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "Webcam Bridge $GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag

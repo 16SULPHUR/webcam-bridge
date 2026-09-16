@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "webcam-bridge"
 dynamic = ["version"]
 description = "Use your Android phone as a USB webcam — desktop bridge with virtual camera, backgrounds and reactions"
-readme = "../README.md"
+readme = "README.md"
 license = "MIT"
 authors = [{ name = "Webcam Bridge contributors" }]
 requires-python = ">=3.10"

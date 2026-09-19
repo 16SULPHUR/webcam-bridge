@@ -4,18 +4,23 @@ fetch.py — Download optional third-party data into the user data directory.
     python -m webcam_bridge.fetch models   # MediaPipe models (also downloaded on first use)
     python -m webcam_bridge.fetch skins    # Neko skin library for custom pets
     python -m webcam_bridge.fetch vcam     # prebuilt virtual camera DLLs (source checkouts)
+    python -m webcam_bridge.fetch adb      # Android platform-tools (the setup wizard does this)
     python -m webcam_bridge.fetch all
 
 The models are Google's (Apache-2.0) and the Neko skins are a community
-collection without a stated license, so neither is bundled. The virtual camera
-DLLs are this project's own, built by CI and attached to each GitHub release;
-pip/zip installs from a release already contain them.
+collection without a stated license, so neither is bundled. Android
+platform-tools is Google's too, and its SDK terms do not allow us to
+redistribute it, so it is fetched from dl.google.com on demand. The virtual
+camera DLLs are this project's own, built by CI and attached to each GitHub
+release; pip/zip installs from a release already contain them.
 """
 
 import argparse
 import hashlib
 import io
 import os
+import shutil
+import stat
 import sys
 import tarfile
 import urllib.request
@@ -29,6 +34,15 @@ SKINS_SUBDIR = "2023-icon-library"
 
 RELEASES = "https://github.com/16SULPHUR/webcam-bridge/releases/latest/download"
 VCAM_ZIP = "webcam-bridge-vcam.zip"
+
+# Google publishes only a moving "latest" build, with no checksum alongside it,
+# so the download is trusted on HTTPS and then sanity-checked for adb itself.
+PLATFORM_TOOLS_URLS = {
+    "win32":  "https://dl.google.com/android/repository/platform-tools-latest-windows.zip",
+    "darwin": "https://dl.google.com/android/repository/platform-tools-latest-darwin.zip",
+    "linux":  "https://dl.google.com/android/repository/platform-tools-latest-linux.zip",
+}
+PLATFORM_TOOLS_PREFIX = "platform-tools/"
 
 
 def _download(url: str) -> bytes:
@@ -105,10 +119,50 @@ def fetch_vcam(force: bool = False) -> None:
     print("  next: webcam-bridge camera install")
 
 
+def fetch_adb(force: bool = False) -> None:
+    """Install Android platform-tools into the user data directory."""
+    if os.path.isfile(paths.ADB_EXE) and not force:
+        print(f"  adb already present at {paths.ADB_EXE}")
+        return
+    url = PLATFORM_TOOLS_URLS.get(sys.platform)
+    if url is None:
+        raise OSError(f"no platform-tools build for {sys.platform} — install adb yourself")
+
+    data = _download(url)
+    staging = paths.ADB_DIR + ".new"
+    shutil.rmtree(staging, ignore_errors=True)
+    exe_name = os.path.basename(paths.ADB_EXE)
+    found_adb = False
+    with zipfile.ZipFile(io.BytesIO(data)) as zf:
+        for member in zf.infolist():
+            if member.is_dir() or not member.filename.startswith(PLATFORM_TOOLS_PREFIX):
+                continue
+            rel = member.filename[len(PLATFORM_TOOLS_PREFIX):]
+            dest = paths.safe_join(staging, rel)
+            if dest is None:
+                continue
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            with zf.open(member) as src, open(dest, "wb") as out:
+                shutil.copyfileobj(src, out)
+            if os.path.basename(dest) == exe_name:
+                found_adb = True
+            if not sys.platform.startswith("win"):
+                os.chmod(dest, os.stat(dest).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+    if not found_adb:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise OSError(f"{url} did not contain {exe_name}")
+
+    # Swap in atomically-ish: a half-extracted platform-tools is worse than none.
+    shutil.rmtree(paths.ADB_DIR, ignore_errors=True)
+    os.replace(staging, paths.ADB_DIR)
+    print(f"  installed adb into {paths.ADB_DIR}")
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="python -m webcam_bridge.fetch", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("what", choices=("models", "skins", "vcam", "all"))
+    parser.add_argument("what", choices=("models", "skins", "vcam", "adb", "all"))
     parser.add_argument("--force", action="store_true", help="download again even if present")
     args = parser.parse_args(argv)
 
@@ -119,6 +173,9 @@ def main(argv=None) -> int:
         if args.what in ("vcam", "all") and sys.platform == "win32":
             print("Virtual camera:")
             fetch_vcam(args.force)
+        if args.what in ("adb", "all"):
+            print("Android platform-tools:")
+            fetch_adb(args.force)
         if args.what in ("skins", "all"):
             print("Neko skins:")
             fetch_skins(args.force)

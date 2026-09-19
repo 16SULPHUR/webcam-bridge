@@ -9,7 +9,9 @@ Environment overrides:
   WEBCAM_BRIDGE_HOME        user data directory (config, uploads, models, skins)
   WEBCAM_BRIDGE_RECORDINGS  where recordings and snapshots are written
   WEBCAM_BRIDGE_FFMPEG      explicit path to the ffmpeg executable
-                            (default: PATH, then the imageio-ffmpeg build)
+                            (default: the bundled build, then PATH)
+  WEBCAM_BRIDGE_ADB         explicit path to the adb executable
+                            (default: the downloaded platform-tools, then PATH)
   MEDIAPIPE_MODELS_DIR      extra directory searched for MediaPipe .task models
 """
 
@@ -19,8 +21,14 @@ import sys
 
 APP_NAME = "WebcamBridge"
 
+# In the packaged Windows build PyInstaller unpacks everything beside the
+# executable; from a source checkout the package directory is the bundle.
+IS_FROZEN  = bool(getattr(sys, "frozen", False))
+BUNDLE_DIR = getattr(sys, "_MEIPASS", "") or os.path.dirname(os.path.abspath(sys.executable))
+
 # ── Bundled resources (read-only) ─────────────────────────────────────────────
-PACKAGE_DIR      = os.path.dirname(os.path.abspath(__file__))
+PACKAGE_DIR      = (os.path.join(BUNDLE_DIR, "webcam_bridge") if IS_FROZEN
+                    else os.path.dirname(os.path.abspath(__file__)))
 WEB_DIR          = os.path.join(PACKAGE_DIR, "web")
 ASSETS_DIR       = os.path.join(PACKAGE_DIR, "assets")
 BUNDLED_BG_DIR   = os.path.join(ASSETS_DIR, "backgrounds")
@@ -28,6 +36,7 @@ BUNDLED_EMOJI_DIR = os.path.join(ASSETS_DIR, "emoji")
 ONEKO_GIF        = os.path.join(WEB_DIR, "img", "oneko.gif")
 FRAME_SENDER     = os.path.join(PACKAGE_DIR, "frame_sender.py")
 VCAM_BUNDLED_DIR = os.path.join(PACKAGE_DIR, "bin")   # <arch>/webcam_bridge_cam.dll (built in CI)
+BUNDLED_FFMPEG   = os.path.join(BUNDLE_DIR, "ffmpeg", "ffmpeg.exe" if sys.platform == "win32" else "ffmpeg")
 
 
 def _default_home() -> str:
@@ -48,6 +57,8 @@ REACTIONS_DIR   = os.path.join(DATA_DIR, "reactions")        # uploaded meme art
 EMOJI_CACHE_DIR = os.path.join(DATA_DIR, "emoji-cache")      # emoji rendered on demand
 SKINS_DIR       = os.path.join(DATA_DIR, "skins")            # Neko skin folders
 MODELS_DIR      = os.path.join(DATA_DIR, "models")           # MediaPipe .task files
+ADB_DIR         = os.path.join(DATA_DIR, "platform-tools")   # downloaded by the setup wizard
+ADB_EXE         = os.path.join(ADB_DIR, "adb.exe" if sys.platform == "win32" else "adb")
 
 RECORDINGS_DIR = os.path.abspath(
     os.environ.get("WEBCAM_BRIDGE_RECORDINGS")
@@ -90,6 +101,10 @@ def resolve_ffmpeg() -> str:
     local = os.path.join(DATA_DIR, "bin", "ffmpeg.exe" if sys.platform == "win32" else "ffmpeg")
     if os.path.isfile(local):
         return local
+    # The packaged build ships a known-good FFmpeg; prefer it over whatever
+    # happens to be on PATH so a stale system build cannot break decoding.
+    if IS_FROZEN and os.path.isfile(BUNDLED_FFMPEG):
+        return BUNDLED_FFMPEG
     found = shutil.which("ffmpeg")
     if found:
         return found

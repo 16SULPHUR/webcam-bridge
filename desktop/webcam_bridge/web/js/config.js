@@ -38,6 +38,7 @@ const Config = (() => {
   let _bgMode = 'none';
   let _bgImage = '';
   let _bgLoaded = false;
+  let _setupCompleted = false;
 
   const nodes = (name) => document.querySelectorAll(`[data-bind="${name}"]`);
 
@@ -85,6 +86,7 @@ const Config = (() => {
 
       _bgMode = cfg.bgMode || 'none';
       _bgImage = cfg.bgImage || '';
+      _setupCompleted = !!cfg.setupCompleted;
       applyBgUI();
       applyConditionalUI();
 
@@ -107,6 +109,7 @@ const Config = (() => {
     Object.keys(FIELDS).forEach(name => { out[name] = readField(name); });
     out.bgMode = _bgMode;
     out.bgImage = _bgImage;
+    out.setupCompleted = _setupCompleted;
     Object.assign(out, Pets.getConfig());
     out.reactions = Reactions.getConfig();
     return out;
@@ -136,6 +139,13 @@ const Config = (() => {
     if (_loading) return;
     clearTimeout(_saveTimer);
     _saveTimer = setTimeout(update, delay);
+  }
+
+  /** Remember that the wizard has been through, so it stops opening first. */
+  function markSetupComplete() {
+    if (_setupCompleted) return;
+    _setupCompleted = true;
+    update();
   }
 
   /** Called by the delegated listeners in app.js whenever a bound control moves. */
@@ -251,7 +261,8 @@ const Config = (() => {
   return {
     load, update, save, onFieldInput, refreshLabels, applyConditionalUI,
     resetSingle, resetProcessing,
-    setBgMode, loadBackgrounds, uploadBackground,
+    setBgMode, loadBackgrounds, uploadBackground, markSetupComplete,
     get bgMode() { return _bgMode; },
+    get setupCompleted() { return _setupCompleted; },
   };
 })();

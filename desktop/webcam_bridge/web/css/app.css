@@ -391,6 +391,39 @@ input[type=range]::-moz-range-thumb {
 
 .component-error { color: var(--bad); font-size: 12px; padding: 10px; }
 
+/* ── Setup wizard ──────────────────────────────────────────────────────── */
+
+.steps { list-style: none; margin: 0; padding: 0; }
+.step {
+  display: flex; align-items: flex-start; gap: 12px; padding: 13px 0;
+}
+.step + .step { border-top: 1px solid var(--line); }
+.step-mark {
+  flex: none; width: 22px; height: 22px; border-radius: 50%; margin-top: 1px;
+  display: grid; place-items: center; font-size: 12px; font-style: normal;
+  background: var(--surface-3); color: var(--text-faint);
+}
+.step.ok .step-mark { background: rgba(52, 211, 153, 0.16); color: var(--ok); }
+.step.todo .step-mark { background: rgba(251, 191, 36, 0.16); color: var(--warn); }
+.step.error .step-mark { background: rgba(251, 113, 133, 0.16); color: var(--bad); }
+.step.working .step-mark { background: rgba(56, 189, 248, 0.16); color: var(--accent); }
+.step.blocked { opacity: 0.5; }
+
+.step-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.step-body b { font-size: 12.5px; font-weight: 600; }
+.step-body span { font-size: 11.5px; color: var(--text-dim); }
+.step-note { color: var(--text-faint) !important; font-size: 11px !important; }
+
+.step-actions { flex: none; display: flex; align-items: center; gap: 8px; }
+.step-actions .btn { text-decoration: none; white-space: nowrap; }
+
+.setup-done-text { margin: 0 0 14px; font-size: 12.5px; color: var(--text-dim); }
+
+@media (max-width: 620px) {
+  .step { flex-wrap: wrap; }
+  .step-actions { width: 100%; padding-left: 34px; }
+}
+
 /* ── Responsive ────────────────────────────────────────────────────────── */
 
 @media (max-width: 1000px) {

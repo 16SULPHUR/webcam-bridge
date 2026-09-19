@@ -21,6 +21,7 @@ from rich.table import Table
 from rich.text import Text
 
 from .config import DASHBOARD_PORT
+from .procs import NO_WINDOW
 
 # Log lines that carry no signal — dropped before they reach the stream.
 NOISE = re.compile(
@@ -179,7 +180,8 @@ class TuiManager:
                 ["nvidia-smi",
                  "--query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu",
                  "--format=csv,noheader,nounits"],
-                capture_output=True, text=True, check=True, timeout=0.8)
+                capture_output=True, text=True, check=True, timeout=0.8,
+                creationflags=NO_WINDOW)
             parts = [p.strip() for p in res.stdout.strip().splitlines()[0].split(",")]
             return {"name": parts[0], "util": int(parts[1]), "mem_used": int(parts[2]),
                     "mem_total": max(1, int(parts[3])), "temp": int(parts[4]), "available": True}

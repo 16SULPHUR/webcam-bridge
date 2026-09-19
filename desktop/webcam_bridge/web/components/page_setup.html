@@ -1,0 +1,30 @@
+<div class="page-head">
+  <h2>Setup</h2>
+  <p>Everything the bridge needs, checked live. Fix what is marked, then you are done for good.</p>
+</div>
+
+<div class="card">
+  <div class="card-head">
+    <h3>Checklist</h3>
+    <div class="spacer"></div>
+    <span class="tag" id="setup-summary">Checking…</span>
+    <button class="btn sm" id="setup-recheck" onclick="Setup.refresh(true)">Re-check</button>
+  </div>
+  <ol class="steps" id="setup-steps">
+    <li class="step"><div class="step-body"><b>Checking your PC…</b></div></li>
+  </ol>
+</div>
+
+<div class="card" id="setup-done" hidden>
+  <div class="card-head"><h3>You are ready</h3></div>
+  <p class="setup-done-text">
+    Pick <b>Webcam Bridge</b> as the camera in Zoom, Teams, Meet, Discord or OBS.
+    Apps that were already open need a restart before they see it.
+  </p>
+  <button class="btn primary" onclick="Setup.finish()">Go to the live view</button>
+</div>
+
+<div class="note" style="margin-top:14px">
+  This page stays here if you ever need it. Nothing else to install — FFmpeg and the
+  virtual camera ship with the app, and the phone tools are downloaded once.
+</div>

@@ -24,10 +24,10 @@ const Toast = {
 };
 
 const App = (() => {
-  const PAGES = ['live', 'camera', 'image', 'background', 'effects', 'reactions', 'logs'];
+  const PAGES = ['live', 'camera', 'image', 'background', 'effects', 'reactions', 'logs', 'setup'];
   const TITLES = {
     live: 'Live', camera: 'Camera', image: 'Image', background: 'Background',
-    effects: 'Effects', reactions: 'Reactions', logs: 'Logs',
+    effects: 'Effects', reactions: 'Reactions', logs: 'Logs', setup: 'Setup',
   };
   const MAX_LOGS = 600;
 
@@ -66,6 +66,7 @@ const App = (() => {
     if (location.hash.slice(1) !== page) history.replaceState(null, '', `#${page}`);
     if (page === 'background') Config.loadBackgrounds();
     if (page === 'logs') renderLogs();
+    if (page === 'setup') Setup.refresh(); else Setup.stop();
   }
 
   /** Dots next to nav entries showing which features are currently on. */
@@ -178,9 +179,14 @@ const App = (() => {
       if (document.visibilityState === 'visible' && (!_sse || _sse.readyState === EventSource.CLOSED)) connect();
     });
 
-    navigate(location.hash.slice(1) || 'live');
+    const requested = location.hash.slice(1);
+    navigate(requested || 'live');
     Reactions.init();
-    Config.load();
+    Setup.init();
+    // Until the wizard has been through once, that is where the app opens.
+    Config.load().then(() => {
+      if (!requested && !Config.setupCompleted) navigate('setup');
+    });
     Vcam.refresh();
     connect();
   }
@@ -190,5 +196,6 @@ const App = (() => {
     init();
   });
 
-  return { navigate, markNav, renderLogs, clearLogs, toggleLogPause, pushLog };
+  return { navigate, markNav, renderLogs, clearLogs, toggleLogPause, pushLog,
+           currentPage: () => _page };
 })();

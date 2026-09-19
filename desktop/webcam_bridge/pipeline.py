@@ -12,13 +12,16 @@ Responsibilities:
 
 import json
 import subprocess
+import sys
 import threading
 import time
 from typing import Optional, Callable
 
+from . import paths
 from .broadcaster import EventBroadcaster
 from .config import ConfigManager
 from .ffmpeg_utils import build_vcam_args
+from .procs import NO_WINDOW
 from .recorder import RecordingManager
 
 
@@ -160,6 +163,7 @@ class Pipeline:
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            creationflags=NO_WINDOW,
         )
         threading.Thread(
             target=self._drain_vcam_stdout,
@@ -180,11 +184,12 @@ class Pipeline:
         # ── 2. Python frame_sender (Unified Filter Processor & VCam/Preview Output) ──
         # We pass only the path to config.json. The Python process reads settings dynamically from it.
         self._py_proc = subprocess.Popen(
-            [self._python, "-u", self._script, self._cfg._path],
+            self._frame_sender_command(),
             bufsize=0,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            creationflags=NO_WINDOW,
         )
         threading.Thread(
             target=self._drain_py_stdout,
@@ -205,6 +210,17 @@ class Pipeline:
         self._bc.update_stats(vcamActive=vcam_enabled)
         self._bc.broadcast_status()
         print("[Pipeline] Ready - waiting for frames from Android...")
+
+    def _frame_sender_command(self) -> list:
+        """How to start the frame processor.
+
+        A source checkout runs frame_sender.py with the interpreter. The
+        packaged build has no python.exe, so it re-runs its own executable with
+        a flag the entry point recognises.
+        """
+        if paths.IS_FROZEN:
+            return [sys.executable, "--frame-sender", self._cfg._path]
+        return [self._python, "-u", self._script, self._cfg._path]
 
     def _kill_all(self, reason: str = "") -> None:
         if reason:

@@ -1,5 +1,6 @@
 @echo off
 REM setup.bat — create a virtual environment and install the desktop bridge.
+REM Only needed for a source checkout; the released installer does all of this.
 REM Usage: scripts\setup.bat            (core features)
 REM        scripts\setup.bat rvm        (also install PyTorch for RVM segmentation)
 
@@ -43,7 +44,6 @@ if %errorlevel%==0 (
 )
 
 echo.
-where adb    >nul 2>&1 || echo [WARN] adb not found on PATH - install Android platform-tools.
-echo.
 echo Setup complete. Start the bridge with: scripts\start.bat
+echo The dashboard's Setup page checks the rest (adb, the phone, the app).
 endlocal

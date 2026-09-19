@@ -58,6 +58,40 @@ jobs:
       - run: ruff check .
       - run: pytest -q
 
+  package:
+    name: Frozen Windows app
+    needs: vcam
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: vcam-x64
+          path: desktop/webcam_bridge/bin/x64
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: desktop/pyproject.toml
+      - name: Install the bridge and PyInstaller
+        working-directory: desktop
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . "pyinstaller>=6.6"
+      - name: Fetch the redistributable FFmpeg
+        working-directory: desktop
+        run: python packaging/fetch_ffmpeg.py
+      - name: Freeze the app
+        working-directory: desktop
+        run: pyinstaller packaging/webcam-bridge.spec --noconfirm
+      - name: Smoke-test the frozen app
+        working-directory: desktop
+        run: |
+          # A windowed exe detaches from the shell, so wait for it explicitly.
+          $app = Start-Process -FilePath dist\WebcamBridge\WebcamBridge.exe `
+            -ArgumentList "camera","status" -Wait -PassThru
+          if ($app.ExitCode -ne 0) { throw "frozen app exited with $($app.ExitCode)" }
+
   android:
     name: Android
     runs-on: ubuntu-latest

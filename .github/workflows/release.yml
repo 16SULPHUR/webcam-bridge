@@ -1,7 +1,8 @@
 name: Release
 
-# Push a tag like v0.2.0 to publish a release with the APK, the desktop zip
-# (virtual camera DLLs included) and the standalone camera DLL zip.
+# Push a tag like v0.2.0 to publish a release with the APK, the one-click
+# Windows installer, the desktop zip (virtual camera DLLs included) and the
+# standalone camera DLL zip.
 # Optional repository secrets for a properly signed APK:
 #   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
 # Without them the APK is signed with a throwaway debug key (installable, but
@@ -32,8 +33,57 @@ jobs:
           path: build/vcam/Release/webcam_bridge_cam.dll
           if-no-files-found: error
 
-  release:
+  installer:
+    name: Windows installer
     needs: vcam
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: vcam-x64
+          path: desktop/webcam_bridge/bin/x64
+      - uses: actions/download-artifact@v8
+        with:
+          name: vcam-x86
+          path: desktop/webcam_bridge/bin/x86
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: desktop/pyproject.toml
+      - name: Install the bridge and PyInstaller
+        working-directory: desktop
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . "pyinstaller>=6.6"
+      - name: Fetch the redistributable FFmpeg
+        working-directory: desktop
+        run: python packaging/fetch_ffmpeg.py
+      - name: Freeze the app
+        working-directory: desktop
+        run: pyinstaller packaging/webcam-bridge.spec --noconfirm
+      - name: Smoke-test the frozen app
+        working-directory: desktop
+        run: |
+          # A windowed exe detaches from the shell, so wait for it explicitly.
+          $app = Start-Process -FilePath dist\WebcamBridge\WebcamBridge.exe `
+            -ArgumentList "camera","status" -Wait -PassThru
+          if ($app.ExitCode -ne 0) { throw "frozen app exited with $($app.ExitCode)" }
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+      - name: Build the installer
+        run: |
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=$version packaging\windows\webcam-bridge.iss
+      - uses: actions/upload-artifact@v7
+        with:
+          name: installer
+          path: dist/WebcamBridge-Setup-*.exe
+          if-no-files-found: error
+
+  release:
+    needs: [vcam, installer]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -41,6 +91,10 @@ jobs:
         with:
           pattern: vcam-*
           path: vcam-dist
+      - uses: actions/download-artifact@v8
+        with:
+          name: installer
+          path: installer-dist
 
       - uses: actions/setup-java@v6
         with:
@@ -74,6 +128,7 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           mkdir -p dist
           cp android/app/build/outputs/apk/release/app-release.apk "dist/webcam-bridge-${VERSION}.apk"
+          cp installer-dist/WebcamBridge-Setup-*.exe dist/
           # Standalone camera DLLs: x64/ and x86/webcam_bridge_cam.dll
           mkdir -p staging/x64 staging/x86
           cp vcam-dist/vcam-x64/webcam_bridge_cam.dll staging/x64/

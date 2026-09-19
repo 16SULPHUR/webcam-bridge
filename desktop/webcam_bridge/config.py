@@ -20,6 +20,9 @@ DASHBOARD_PORT = 5134
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
 _DEFAULTS: dict[str, Any] = {
+    # Set once the first-run wizard has been seen; until then the dashboard
+    # opens on the Setup page instead of Live.
+    "setupCompleted": False,
     "resolution":  "auto",
     "mirror":      False,
     "orientation": 0,

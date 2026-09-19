@@ -17,6 +17,9 @@ recordings/
 # Virtual camera DLLs (built by CI, or `python -m webcam_bridge.fetch vcam`)
 desktop/webcam_bridge/bin/
 
+# FFmpeg fetched for the installer build (`python packaging/fetch_ffmpeg.py`)
+desktop/packaging/ffmpeg/
+
 # Node (emoji builder)
 node_modules/
 

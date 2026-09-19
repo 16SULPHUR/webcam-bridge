@@ -6,6 +6,26 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- **One-click Windows installer** (`WebcamBridge-Setup-<version>.exe`): bundles Python, FFmpeg and the
+  virtual camera, registers the camera during installation and adds Start-menu and desktop shortcuts.
+  Nothing else has to be installed by hand.
+- The desktop shortcut now does what `scripts\start.bat` did — connect to the phone, set up the USB port
+  forwards, start the bridge and open the dashboard — so there is a single thing to open.
+- **Setup page** in the dashboard: a live checklist of FFmpeg, the virtual camera, `adb`, the phone, the
+  phone app and the video stream, with one-click fixes. It opens automatically until you have been through it.
+- Android platform-tools is downloaded on demand (`python -m webcam_bridge.fetch adb` or the Setup page)
+  instead of having to be installed and put on `PATH` by hand.
+- `WEBCAM_BRIDGE_ADB` overrides which `adb` is used.
+
+### Changed
+- The bundled FFmpeg is preferred over one on `PATH`, so a stale system build cannot break decoding.
+- The installer ships an LGPL FFmpeg build rather than the GPL one `pip` installs; see
+  [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+### Fixed
+- `adb devices` daemon-startup output was parsed as if it were a connected device.
+
 ## [0.1.1] - 2026-09-17
 
 ### Fixed

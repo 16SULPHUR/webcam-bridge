@@ -31,6 +31,11 @@ from .web_server    import BridgeServer
 from .phone_stats  import PhoneStatsCollector
 
 
+# One-shot commands rather than "start the bridge" — the launcher skips its
+# background work for these, and the Windows installer calls `camera install`.
+SUBCOMMANDS = ("camera",)
+
+
 def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="webcam-bridge",
@@ -83,7 +88,7 @@ def main(argv=None) -> None:
     ffmpeg_path = paths.resolve_ffmpeg()
     if not (os.path.isfile(ffmpeg_path) or shutil.which(ffmpeg_path)):
         print(f"Error: FFmpeg not found ({ffmpeg_path}).\n"
-              "Reinstall the bridge (scripts\\setup.bat), install FFmpeg on PATH, "
+              "Reinstall Webcam Bridge, install FFmpeg on PATH, "
               "or set WEBCAM_BRIDGE_FFMPEG to ffmpeg.exe.", file=sys.stderr)
         sys.exit(1)
 
@@ -103,7 +108,8 @@ def main(argv=None) -> None:
 
     # Initialize TUI
     from .tui import TuiManager, run_tui_loop
-    use_tui = sys.stdout.isatty() and not args.no_tui
+    # A packaged (windowed) build has no console, so there is no TUI to draw.
+    use_tui = bool(getattr(sys.stdout, "isatty", bool)()) and not args.no_tui
     tui = TuiManager(broadcaster, config, port=args.port) if use_tui else None
 
     # ── 2. HTTP server ────────────────────────────────────────────────────────

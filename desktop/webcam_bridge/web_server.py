@@ -21,6 +21,8 @@ Routes:
   GET  /reactions/assets/*     → reaction artwork files
   GET  /api/backgrounds        → bundled + uploaded backgrounds
   GET  /api/skins, /skins/*    → Neko skins from the user data directory
+  GET  /api/setup              → first-run wizard checklist
+  POST /api/setup/action       → run one wizard fix (camera install, adb download, …)
 
 The dashboard has no authentication, so it binds to localhost by default and
 rejects state-changing requests sent from other web origins.
@@ -97,6 +99,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._handle_reactions_catalog()
             elif path == "/api/vcam":
                 self._handle_vcam_status()
+            elif path == "/api/setup":
+                self._handle_setup_status()
             elif path.startswith("/reactions/assets/"):
                 self._handle_serve_reaction_asset(path)
             elif path.startswith("/video_feed"):
@@ -153,6 +157,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._handle_reaction_preview()
             elif path in ("/api/vcam/install", "/api/vcam/uninstall"):
                 self._handle_vcam_change(path.rsplit("/", 1)[1])
+            elif path == "/api/setup/action":
+                self._handle_setup_action()
             else:
                 self.send_error(404)
         except Exception as exc:
@@ -464,6 +470,29 @@ class BridgeHandler(BaseHTTPRequestHandler):
             return
         self.broadcaster.broadcast_log("system", message)
         self._json({"success": True, "message": message, **vcam.status()})
+
+    # ── First-run wizard ──────────────────────────────────────────────────────
+
+    def _handle_setup_status(self) -> None:
+        from . import setup_state
+        stats = self.broadcaster.get_stats()
+        self._json(setup_state.snapshot(bool(stats.get("androidConnected"))))
+
+    def _handle_setup_action(self) -> None:
+        """Kick off one wizard fix. Some of them show a UAC prompt on this PC."""
+        from . import setup_state
+        if self.client_address[0] not in ("127.0.0.1", "::1"):
+            self._json({"success": False, "error": "Only allowed from this computer"}, 403)
+            return
+        length = int(self.headers.get("Content-Length") or 0)
+        try:
+            body = json.loads(self.rfile.read(length) or b"{}")
+        except (ValueError, OSError):
+            body = {}
+        started, message = setup_state.start_action(
+            str(body.get("action", "")), port=self.server.server_address[1])
+        self._json({"success": started, "message" if started else "error": message},
+                   200 if started else 400)
 
     # ── Backgrounds ───────────────────────────────────────────────────────────
 

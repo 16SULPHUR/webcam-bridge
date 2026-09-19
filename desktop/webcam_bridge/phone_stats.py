@@ -10,35 +10,21 @@ Stats collected:
 Results are pushed into the EventBroadcaster so SSE clients receive them.
 """
 
-import subprocess
 import threading
 import time
 from typing import List, Optional
 
+from . import adb
 from .broadcaster import EventBroadcaster
 
 
 # Interval between ADB stat polls (seconds)
 POLL_INTERVAL = 10.0
 
-# ADB binary — assumes it's on PATH
-ADB = "adb"
-
 
 def _run_adb(args: List[str], timeout: float = 5.0) -> Optional[str]:
     """Run an adb command and return stdout, or None on failure."""
-    try:
-        result = subprocess.run(
-            [ADB] + args,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-    except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
-        pass
-    return None
+    return adb.run(args, timeout=timeout)
 
 
 def _parse_battery_dump(dump: str) -> dict:

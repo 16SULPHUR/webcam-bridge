@@ -36,7 +36,10 @@ Webcam Bridge has two halves that talk over an `adb` USB connection.
 | Module | Responsibility |
 |---|---|
 | `__main__.py` | CLI, wiring, shutdown |
-| `paths.py` | Every filesystem location; env-var overrides |
+| `launcher.py` | What the Windows shortcut runs: adb, USB forwards, browser, then `__main__` |
+| `paths.py` | Every filesystem location; env-var overrides; source vs. packaged layout |
+| `adb.py` | Finding and running `adb`; device, package and port-forward helpers |
+| `setup_state.py` | The dashboard's Setup checklist and its one-click fixes |
 | `config.py` | Thread-safe `config.json` with defaults |
 | `tcp_client.py` | Connects to the phone, reconnects, sends commands |
 | `pipeline.py` | Spawns FFmpeg and `frame_sender.py`, restarts on failure |
@@ -46,7 +49,8 @@ Webcam Bridge has two halves that talk over an `adb` USB connection.
 | `vcam.py` | Virtual camera output (built-in DirectShow camera or pyvirtualcam) and its installer |
 | `recorder.py` | Remuxes the raw H.264 stream to MP4 |
 | `web_server.py` | Standard-library HTTP server for the dashboard |
-| `fetch.py` | Optional downloads (MediaPipe models, Neko skins) |
+| `fetch.py` | Optional downloads (MediaPipe models, Neko skins, platform-tools) |
+| `procs.py` | Subprocess flags — keeps helper consoles hidden in the packaged app |
 
 `frame_sender.py` runs as its own process. It communicates with the bridge
 through pipes: stdin carries raw frames, stdout carries length-prefixed JPEGs,
@@ -67,6 +71,21 @@ Bundled resources ship inside the package (`web/`, `assets/`). Anything a user
 creates goes to the data directory (`WEBCAM_BRIDGE_HOME`, default
 `%LOCALAPPDATA%\WebcamBridge`), and recordings go to
 `WEBCAM_BRIDGE_RECORDINGS` (default `~/Videos/WebcamBridge`).
+
+## Packaging
+
+`desktop/packaging/webcam-bridge.spec` freezes the bridge with PyInstaller into
+a self-contained folder — CPython, every wheel, an LGPL FFmpeg
+(`packaging/fetch_ffmpeg.py`) and the camera DLLs.
+`packaging/windows/webcam-bridge.iss` wraps that in an Inno Setup installer,
+which registers the camera by calling the app's own `camera install`.
+
+The frozen build has no `python.exe`, so `pipeline.py` starts the frame
+processor by re-running the app as `WebcamBridge.exe --frame-sender <config>`;
+`packaging/entry.py` routes that back into `frame_sender.main()`. It also has
+no console, so `launcher.py` sends output to `webcam-bridge.log` in the data
+directory. Android platform-tools is never bundled — Google's SDK terms do not
+allow redistributing it — so the Setup page downloads it on first run.
 
 ## Security model
 

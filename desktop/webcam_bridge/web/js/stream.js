@@ -76,7 +76,8 @@ const Stream = (() => {
       if (fps) fps.style.display = 'block';
       if (badge) { badge.textContent = '● LIVE'; badge.className = 'stage-tag live'; }
     } else {
-      setStatus('connecting', 'Waiting for phone');
+      setStatus('connecting', data.deviceState === 'installing' ? 'Installing app' : 'Waiting for phone');
+      if (data.deviceHint) setText('feed-hint', data.deviceHint);
       stopKeepalive();
       if (img) { img.style.display = 'none'; img.onerror = null; }
       if (placeholder) placeholder.style.display = 'flex';
@@ -127,6 +128,13 @@ const Stream = (() => {
     }
 
     if (data.recording !== undefined) setRecordingUI(data.recording);
+    if (data.updateAvailable) {
+      const link = el('update-link');
+      if (link) {
+        link.textContent = 'Update available: v' + data.updateAvailable;
+        link.style.display = '';
+      }
+    }
     phoneStats(data);
   }
 

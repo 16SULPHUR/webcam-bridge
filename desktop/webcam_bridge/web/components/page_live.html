@@ -8,8 +8,8 @@
     <div class="stage" id="stage" ondblclick="Stream.toggleFullscreen()">
       <div class="stage-empty" id="feed-placeholder">
         <div class="stage-ring"></div>
-        <strong>Waiting for the phone stream</strong>
-        <span>Start streaming in the Android app, then run <code>adb forward tcp:8080 tcp:8080</code>.</span>
+        <strong id="feed-title">Waiting for the phone stream</strong>
+        <span id="feed-hint">Plug your phone in with a USB cable and turn on USB debugging.</span>
       </div>
       <img id="feed-img" src="" alt="Live camera feed" style="display:none">
       <div class="stage-tag" id="feed-badge">OFFLINE</div>

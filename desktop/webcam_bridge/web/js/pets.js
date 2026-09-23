@@ -131,7 +131,7 @@ const Pets = (() => {
     if (!list.length) {
       grid.innerHTML = `<div class="empty" style="grid-column:1/-1">${
         _skins.length ? 'No skins match.'
-                      : 'No skins installed — run <code>python -m webcam_bridge.fetch skins</code> or put skin folders in the <code>skins</code> folder of your data directory.'}</div>`;
+                      : 'No skins installed — run <code>webcam-bridge fetch skins</code> or put skin folders in the <code>skins</code> folder of your data directory.'}</div>`;
       return;
     }
     grid.innerHTML = list.map(skin => `

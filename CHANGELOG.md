@@ -6,6 +6,24 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- Windows installer (`WebcamBridge-Setup-<version>.exe`) and portable zip that need no Python, adb or OBS:
+  they bundle the bridge, adb and the Android app, and register the Webcam Bridge camera.
+- Plug and play: the bridge finds the phone over USB, installs or updates the Android app, sets up
+  `adb forward` / `adb reverse`, and opens the app straight into streaming. Replugging the phone works.
+- adb is downloaded automatically (pinned, checksum-verified platform-tools) when it isn't installed.
+- The dashboard explains what to do next (enable USB debugging, tap Allow, installing the app) and
+  shows when a new release is available.
+- `webcam-bridge doctor` checks FFmpeg, adb, the phone, the app and the camera.
+- `webcam-bridge fetch` replaces `python -m webcam_bridge.fetch` and can also fetch `apk` and `adb`.
+- `--no-browser`, `--no-adb` and `--no-update-check` options. The dashboard opens in the browser on start.
+- Release automation: one command bumps every version; tagged releases publish the installer, portable
+  zip, APK, Python wheel and checksums, plus optional PyPI and winget publishing.
+- Every pull request builds and smoke-tests the Windows installer.
+
+### Changed
+- `scripts\start.bat` and `scripts/start.sh` just run the bridge; adb handling moved into the bridge.
+
 ## [0.1.1] - 2026-09-17
 
 ### Fixed

@@ -47,6 +47,7 @@ class AndroidTcpClient:
         self._on_disconnect  = on_disconnect
 
         self._sock: Optional[socket.socket] = None
+        self._pending: Optional[socket.socket] = None
         self._running = False
         self._thread: Optional[threading.Thread] = None
 
@@ -113,6 +114,7 @@ class AndroidTcpClient:
                 time.sleep(RECONNECT_DELAY)
 
     def _connect_and_read(self) -> None:
+        first = b""
         while self._running:
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -120,6 +122,15 @@ class AndroidTcpClient:
                 sock.settimeout(3.0)
                 sock.connect((ADB_HOST, ADB_PORT))
                 sock.settimeout(None)
+                # adb accepts the forward even when the app isn't listening yet and then
+                # closes it; only a connection that delivers data counts as connected.
+                self._pending = sock
+                first = sock.recv(READ_CHUNK_SIZE)
+                self._pending = None
+                if not first:
+                    sock.close()
+                    time.sleep(RECONNECT_DELAY)
+                    continue
                 self._sock = sock
                 break
             except (ConnectionRefusedError, TimeoutError, OSError):
@@ -143,11 +154,13 @@ class AndroidTcpClient:
 
         # Read loop
         buf_log = 0
+        chunk = first
         while self._running:
-            try:
-                chunk = self._sock.recv(READ_CHUNK_SIZE)
-            except Exception:
-                break
+            if not chunk:
+                try:
+                    chunk = self._sock.recv(READ_CHUNK_SIZE)
+                except Exception:
+                    break
             if not chunk:
                 break
 
@@ -164,11 +177,18 @@ class AndroidTcpClient:
                 buf_log = 0
 
             self._data_cb(chunk)
+            chunk = b""
 
         self._bc.broadcast_log("node", "[Bridge] TCP connection closed")
         print("[Bridge] TCP connection closed")
 
     def _close_socket(self) -> None:
+        pending, self._pending = self._pending, None
+        if pending:
+            try:
+                pending.close()
+            except Exception:
+                pass
         sock, self._sock = self._sock, None
         if sock:
             try:

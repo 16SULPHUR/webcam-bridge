@@ -137,7 +137,7 @@ def install() -> str:
             if arch == "x64":
                 raise VirtualCameraError(
                     f"{DLL_NAME} not found in {paths.VCAM_BUNDLED_DIR}. "
-                    "Run: python -m webcam_bridge.fetch vcam")
+                    "Run: webcam-bridge fetch vcam")
             continue  # 32-bit support is optional
         dest = installed_dll(arch)
         os.makedirs(os.path.dirname(dest), exist_ok=True)

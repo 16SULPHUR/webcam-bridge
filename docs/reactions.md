@@ -125,7 +125,7 @@ Both `mediapipe` and `pillow` are installed with the desktop bridge
 On MediaPipe **1.0+** the legacy `mp.solutions` graphs are gone, so the detector
 falls back to the Tasks API and needs the model files in the `models/` data
 folder (or a directory named by `MEDIAPIPE_MODELS_DIR`). Download them with
-`python -m webcam_bridge.fetch models`, or manually:
+`webcam-bridge fetch models`, or manually:
 
 - [hand_landmarker.task](https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task)
 - [face_landmarker.task](https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task)

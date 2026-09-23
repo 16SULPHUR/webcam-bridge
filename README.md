@@ -1,25 +1,64 @@
 # Webcam Bridge
 
-**Use your Android phone as a USB webcam.** The phone streams H.264 over USB;
-the desktop bridge decodes it, applies effects and feeds its own **Webcam
-Bridge** virtual camera that Zoom, Teams, Meet, Discord and OBS can use — no
-OBS install required.
+**Use your Android phone as a USB webcam.** Install it, plug your phone in, and
+pick **Webcam Bridge** as the camera in Zoom, Teams, Meet, Discord or OBS. The
+bridge installs the phone app for you, and there's nothing else to set up.
 
 [![CI](https://github.com/16SULPHUR/webcam-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/16SULPHUR/webcam-bridge/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/16SULPHUR/webcam-bridge)](https://github.com/16SULPHUR/webcam-bridge/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/16SULPHUR/webcam-bridge/total)](https://github.com/16SULPHUR/webcam-bridge/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-- 📱 **Phone camera over USB** — low latency, no Wi-Fi needed
-- 🎛️ **Web dashboard** — live preview, resolution / FPS, zoom, colour, sharpness
-- 🌄 **Virtual backgrounds** — blur or replace, with MediaPipe or Robust Video Matting
+- 📱 **Phone camera over USB**: low latency, no Wi-Fi needed
+- 🔌 **Plug and play**: finds the phone, installs and updates the app, starts streaming
+- 🎛️ **Web dashboard**: live preview, resolution / FPS, zoom, colour, sharpness
+- 🌄 **Virtual backgrounds**: blur or replace, with MediaPipe or Robust Video Matting
 - ✨ **Face touch-up**, recording and snapshots
-- 🎭 **Reaction overlays** — thumbs-up, peace sign, heart hands or a smile trigger animated emoji and memes
+- 🎭 **Reaction overlays**: thumbs-up, peace sign, heart hands or a smile trigger animated emoji and memes
 - 🐈 **Desktop pets** for your video feed
 - 🕹️ **Remote control** from the phone app and a home-screen widget
+
+## Get started
+
+### 1. Install
+
+**Windows 10/11:** download **`WebcamBridge-Setup-<version>.exe`** from the
+[latest release](https://github.com/16SULPHUR/webcam-bridge/releases/latest)
+and run it. It includes everything: no Python, adb or OBS needed, and it sets up
+the **Webcam Bridge** camera. Prefer no installer? Use the portable
+`WebcamBridge-<version>-windows-x64.zip`.
+
+**Linux / macOS:**
+
+```bash
+pipx install webcam-bridge
+```
+
+The virtual camera uses [v4l2loopback](https://github.com/umlaeute/v4l2loopback)
+on Linux (`sudo apt install v4l2loopback-dkms`) and
+[OBS](https://obsproject.com) on macOS.
+
+### 2. Turn on USB debugging on the phone
+
+Settings → About phone → tap **Build number** seven times, then turn on
+**Developer options → USB debugging**. [Step-by-step guide and phone-specific notes](docs/phone-setup.md).
+
+### 3. Plug in and start
+
+Open **Webcam Bridge** from the Start menu (or run `webcam-bridge`), plug the
+phone in and tap **Allow** on the phone. The bridge installs the app, opens it
+and starts streaming; the dashboard opens at <http://localhost:5134>.
+
+Then choose **Webcam Bridge** as the camera in your video app. Apps that were
+already open need a restart to see it.
+
+Something not working? Run **Webcam Bridge (troubleshoot)** from the Start menu
+or `webcam-bridge doctor`; it checks every piece and says what's missing.
 
 ## How it works
 
 ```
-Android phone                                   Desktop (Windows)
+Android phone                                   Desktop
 ┌─────────────────────────┐   USB (adb)   ┌───────────────────────────────────────────┐
 │ Camera2 → MediaCodec    │ ────────────► │ TCP client (localhost:8080)               │
 │ H.264 → TCP server :8080│               │   → FFmpeg decode → Python effects        │
@@ -30,76 +69,44 @@ Android phone                                   Desktop (Windows)
 
 More detail in [docs/architecture.md](docs/architecture.md).
 
-## Requirements
-
-| | |
-|---|---|
-| Phone | Android 6.0+ with [USB debugging](https://developer.android.com/studio/debug/dev-options) enabled |
-| Desktop | Windows 10/11 (Linux/macOS may work — see [below](#linux--macos)) |
-| Python | 3.10 or newer ([python.org](https://www.python.org/downloads/) — tick **Add python.exe to PATH**) |
-| FFmpeg | Installed automatically (imageio-ffmpeg); a system FFmpeg on `PATH` is used if present |
-| ADB | [Android platform-tools](https://developer.android.com/tools/releases/platform-tools) on `PATH` |
-| Virtual camera | Built in on Windows (one admin prompt at setup). Fallback: [OBS Studio](https://obsproject.com) 26+ |
-
-## Quick start
-
-1. **Install the phone app.** Download `webcam-bridge-<version>.apk` from the
-   [latest release](https://github.com/16SULPHUR/webcam-bridge/releases/latest)
-   and install it, or build it yourself (see [Building the Android app](#building-the-android-app)).
-2. **Get the desktop bridge.** Download the source zip from the same release
-   (or `git clone https://github.com/16SULPHUR/webcam-bridge.git`), then run:
-   ```bat
-   scripts\setup.bat
-   ```
-   This also installs the **Webcam Bridge** camera — approve the administrator
-   prompt. Add `rvm` (`scripts\setup.bat rvm`) to also install PyTorch for the
-   higher-quality Robust Video Matting background engine.
-3. **Connect.** Plug the phone in over USB, open the app and tap **Start Streaming**, then:
-   ```bat
-   scripts\start.bat
-   ```
-4. **Open the dashboard** at <http://localhost:5134>.
-5. **Pick the camera.** In Zoom / Teams / Meet select **Webcam Bridge**
-   (restart apps that were open during setup). Start the bridge first.
-
-### Command-line options
+## Command line
 
 ```
-webcam-bridge [--host HOST] [--port PORT] [--no-tui] [--version]
+webcam-bridge [--host HOST] [--port PORT] [--no-tui] [--no-browser] [--no-adb] [--no-update-check]
+webcam-bridge doctor
 webcam-bridge camera install | uninstall | status
+webcam-bridge fetch models | skins | vcam | apk | adb | all
 ```
 
 | Option / variable | Default | Purpose |
 |---|---|---|
-| `--host` / `WEBCAM_BRIDGE_HOST` | `127.0.0.1` | Dashboard bind address. Use `0.0.0.0` to control it from other devices over Wi-Fi — the dashboard has **no password**, so only do this on a trusted network. |
+| `--host` / `WEBCAM_BRIDGE_HOST` | `127.0.0.1` | Dashboard bind address. Use `0.0.0.0` to control it from other devices over Wi-Fi. The dashboard has **no password**, so only do this on a trusted network. |
 | `--port` / `WEBCAM_BRIDGE_PORT` | `5134` | Dashboard port |
 | `--no-tui` | off | Plain log output instead of the terminal UI |
-| `WEBCAM_BRIDGE_HOME` | `%LOCALAPPDATA%\WebcamBridge` | Settings, uploaded backgrounds and memes, models, pet skins |
+| `--no-browser` / `WEBCAM_BRIDGE_NO_BROWSER` | off | Don't open the dashboard on start |
+| `--no-adb` / `WEBCAM_BRIDGE_NO_ADB` | off | Don't manage the phone; run `adb forward tcp:8080 tcp:8080` yourself |
+| `--no-update-check` / `WEBCAM_BRIDGE_NO_UPDATE_CHECK` | off | Don't check GitHub for new releases |
+| `WEBCAM_BRIDGE_HOME` | `%LOCALAPPDATA%\WebcamBridge` | Settings, uploads, models, downloaded adb and APK |
 | `WEBCAM_BRIDGE_RECORDINGS` | `~\Videos\WebcamBridge` | Recordings and snapshots |
-| `WEBCAM_BRIDGE_FFMPEG` | `ffmpeg` on `PATH`, else the bundled build | Path to the FFmpeg executable |
-
-### Optional downloads
-
-```bat
-desktop\.venv\Scripts\python -m webcam_bridge.fetch models   :: MediaPipe models (otherwise downloaded on first use)
-desktop\.venv\Scripts\python -m webcam_bridge.fetch skins    :: Neko skins for custom pets
-```
+| `WEBCAM_BRIDGE_FFMPEG` | `ffmpeg` on `PATH`, else the bundled build | FFmpeg executable |
+| `WEBCAM_BRIDGE_ADB` | `adb` on `PATH`, else bundled or downloaded | adb executable |
+| `WEBCAM_BRIDGE_APK` | bundled, else downloaded from the release | Android app to install on the phone |
 
 ## Virtual camera
 
 On Windows the bridge ships its own DirectShow camera, **Webcam Bridge**
-(built from [softcam](https://github.com/tshino/softcam)). `scripts\setup.bat`
-installs it; you can also manage it from the dashboard's **Camera** page or with
-`webcam-bridge camera install|uninstall|status`. The **Virtual camera** setting
-picks the output: *Automatic* uses Webcam Bridge when installed and OBS Virtual
-Camera otherwise. Details and limitations: [vcam/windows/README.md](vcam/windows/README.md).
+(built from [softcam](https://github.com/tshino/softcam)). The installer
+registers it; with the portable zip or pip, run `webcam-bridge camera install`
+or use the dashboard's **Camera** page. The **Virtual camera** setting picks the
+output: *Automatic* uses Webcam Bridge when installed and OBS Virtual Camera
+otherwise. Details and limitations: [vcam/windows/README.md](vcam/windows/README.md).
 
 ## Phone remote control
 
-The app's **Control** screen and home-screen widget talk to the dashboard.
-`scripts\start.bat` runs `adb reverse`, so the default address
-`127.0.0.1:5134` works over the USB cable. For Wi-Fi control, start the bridge
-with `--host 0.0.0.0` and enter your PC's LAN address (e.g. `192.168.1.5:5134`).
+The app's **Control** screen and home-screen widget talk to the dashboard. The
+bridge runs `adb reverse`, so the default address `127.0.0.1:5134` works over
+the USB cable. For Wi-Fi control, start the bridge with `--host 0.0.0.0` and
+enter your PC's LAN address (e.g. `192.168.1.5:5134`).
 
 ## Reaction overlays 🎭
 
@@ -108,47 +115,36 @@ the matching emoji (or your own meme) animates onto the stream. Everything
 lives on the dashboard's **Reactions** page. Adding gestures, animations and
 artwork is documented in [docs/reactions.md](docs/reactions.md).
 
-## Building the Android app
-
-Requires JDK 17 and the Android SDK (API 37). Android Studio works out of the
-box — open the `android/` folder. From the command line:
-
-```bat
-cd android
-gradlew.bat assembleDebug
-adb install -r app\build\outputs\apk\debug\app-debug.apk
-```
-
-`scripts\install-android.bat` does both steps.
-
-## Linux / macOS
-
-The bridge is developed on Windows, but its dependencies are cross-platform.
-The built-in camera is Windows-only; there `pyvirtualcam` is used instead and
-needs [v4l2loopback](https://github.com/umlaeute/v4l2loopback) on Linux and OBS
-on macOS. Use `scripts/start.sh`. Reports and fixes are welcome!
-
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
-| `adb` not found | Install platform-tools and add the folder to `PATH` |
-| Dashboard says *Android disconnected* | Make sure the app is streaming and `adb forward tcp:8080 tcp:8080` ran (`scripts\start.bat` does this) |
+| Dashboard says *Plug your phone in* | Check the cable carries data, USB debugging is on, and see [phone setup](docs/phone-setup.md) |
+| Dashboard says *tap Allow* | Unlock the phone and accept the USB debugging prompt |
+| *Could not install the app* | Xiaomi and some other phones need **Install via USB** turned on ([details](docs/phone-setup.md#phone-specific-notes)), or sideload the APK |
+| *Uninstall the old Webcam Bridge app* | The installed app was signed with a different key; uninstall it once and reconnect |
 | No "Webcam Bridge" camera in apps | Run `webcam-bridge camera install`, restart the app, and start the bridge before selecting the camera |
-| Camera shows a dark frozen image | The bridge stopped — start it again |
-| `FFmpeg not found` | Re-run `scripts\setup.bat`, or set `WEBCAM_BRIDGE_FFMPEG` |
-| `setup.bat` says Python is required | Install Python from python.org; the Microsoft Store `python` alias doesn't work |
-| Phone remote control can't connect | Re-run `scripts\start.bat` (sets up `adb reverse`) or use Wi-Fi mode |
-| Background removal is slow | Use the MediaPipe engine, lower the resolution, or install the `rvm` extra on an NVIDIA GPU |
+| Camera shows a dark frozen image | The bridge stopped; start it again |
+| Windows SmartScreen warns about the installer | Click **More info → Run anyway**; the installer isn't code-signed yet |
+| Background removal is slow | Use the MediaPipe engine or a lower resolution. The RVM engine needs the pip install with the `rvm` extra |
 | Camera permission denied | Android Settings → Apps → Webcam Bridge → Permissions |
+
+Still stuck? [Open an issue](https://github.com/16SULPHUR/webcam-bridge/issues/new/choose)
+and paste the output of `webcam-bridge doctor`.
+
+## Building from source
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, and
+[docs/releasing.md](docs/releasing.md) for how releases are built.
 
 ## Contributing
 
-Contributions are very welcome — bug reports, docs, new gestures, platform
+Contributions are very welcome: bug reports, docs, new gestures, platform
 support. Read [CONTRIBUTING.md](CONTRIBUTING.md) to get started, and please
 follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
-[MIT](LICENSE). Bundled third-party material (softcam, Twemoji, oneko) is listed in
+[MIT](LICENSE). Bundled third-party material (softcam, Twemoji, oneko, Android
+platform-tools in the Windows builds) is listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

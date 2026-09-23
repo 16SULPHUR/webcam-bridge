@@ -5,8 +5,8 @@ more platforms are all welcome.
 
 ## Ways to help
 
-- **Report a bug** — open an issue using the bug template. Include your OS,
-  phone model, Android version and the bridge log (`--no-tui` output is easiest to copy).
+- **Report a bug** — open an issue using the bug template. Include the output of
+  `webcam-bridge doctor` and the bridge log (`--no-tui` output is easiest to copy).
 - **Suggest a feature** — open a feature request and describe the use case first.
 - **Pick an issue** — look for [`good first issue`](https://github.com/16SULPHUR/webcam-bridge/labels/good%20first%20issue)
   or [`help wanted`](https://github.com/16SULPHUR/webcam-bridge/labels/help%20wanted).
@@ -21,8 +21,9 @@ desktop/            Desktop bridge (Python package `webcam_bridge`)
   tests/            pytest suite
   tools/emoji/      rebuilds the bundled Twemoji pack (Node.js)
 vcam/windows/       built-in virtual camera DLL (C++, CMake, vendored softcam)
-docs/               architecture and feature docs
-scripts/            setup / start helpers
+docs/               architecture, phone setup, releasing
+packaging/          standalone build (PyInstaller) and Windows installer (Inno Setup)
+scripts/            source-checkout helpers and release.py
 ```
 
 See [docs/architecture.md](docs/architecture.md) for how the pieces fit.
@@ -48,12 +49,27 @@ Tips:
 - `frame_sender.py` runs in a separate process. Never `print()` to stdout
   there, because stdout carries video frames. Use `log()` instead.
 - New config keys must be added to `_DEFAULTS` in `config.py`, or they won't be saved.
+- `webcam-bridge --no-adb` skips the automatic phone setup if you want to run adb by hand.
+
+## Standalone build and installer
+
+On Windows, with Python 3.12 and [Inno Setup 6](https://jrsoftware.org/isinfo.php):
+
+```powershell
+packaging\windows\build.ps1 -VcamDir <folder with x64\ and x86\ DLLs> -Apk <app.apk>
+python packaging\smoke_test.py build\stage\app\webcam-bridge.exe
+```
+
+CI does the same for every pull request and uploads the installer as the
+**windows-installer** artifact, so you can try a PR without building anything.
+On Linux/macOS, `pyinstaller packaging/pyinstaller/webcam-bridge.spec` builds the
+standalone app for testing.
 
 ## Virtual camera development
 
 The DLL in `vcam/windows/` needs Visual Studio 2019+ — see
 [vcam/windows/README.md](vcam/windows/README.md). If you only work on Python,
-`python -m webcam_bridge.fetch vcam` downloads a prebuilt copy, and CI builds it
+`webcam-bridge fetch vcam` downloads a prebuilt copy, and CI builds it
 for every pull request.
 
 ## Android development
@@ -67,7 +83,8 @@ Open `android/` in Android Studio, or run
 2. Keep each PR focused on one change. Add or update tests where it makes sense.
 3. Make sure `pytest` and `ruff check .` pass, and the Android app builds.
 4. Update docs or the README if behaviour changes, and add a line to
-   `CHANGELOG.md` under **Unreleased**.
+   `CHANGELOG.md` under **Unreleased**. Don't change version numbers; see
+   [docs/releasing.md](docs/releasing.md).
 5. Open the PR and fill in the template. CI must be green before merge.
 
 Commit messages: short imperative summary (`Add wink trigger sensitivity`),

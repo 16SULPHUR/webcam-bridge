@@ -57,7 +57,7 @@ On Windows, with Python 3.12 and [Inno Setup 6](https://jrsoftware.org/isinfo.ph
 
 ```powershell
 packaging\windows\build.ps1 -VcamDir <folder with x64\ and x86\ DLLs> -Apk <app.apk>
-python packaging\smoke_test.py build\stage\app\webcam-bridge.exe (Get-Item dist\WebcamBridge-*-portable.exe).FullName
+python packaging\smoke_test.py build\stage\app\webcam-bridge.exe --portable (Get-Item dist\WebcamBridge-*-portable.exe).FullName
 ```
 
 CI does the same for every pull request and uploads the installer as the

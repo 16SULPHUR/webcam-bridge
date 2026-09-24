@@ -92,7 +92,7 @@ jobs:
           python-version: "3.12"
       - run: packaging\windows\build.ps1 -VcamDir build\vcam-dist -Apk build\apk\app-release.apk
         shell: pwsh
-      - run: python packaging/smoke_test.py build/stage/app/webcam-bridge.exe (Get-Item dist/WebcamBridge-*-portable.exe).FullName
+      - run: python -u packaging/smoke_test.py build/stage/app/webcam-bridge.exe --portable (Get-Item dist/WebcamBridge-*-portable.exe).FullName
         shell: pwsh
       - uses: actions/upload-artifact@v7
         with:

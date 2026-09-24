@@ -37,8 +37,9 @@ HINTS = {
 
 def find_apk() -> Optional[str]:
     candidates = [os.environ.get("WEBCAM_BRIDGE_APK")]
-    if paths.INSTALL_DIR:
-        candidates.append(os.path.join(paths.INSTALL_DIR, "android", "webcam-bridge.apk"))
+    for base in (paths.INSTALL_DIR, paths.BUNDLE_DIR):
+        if base:
+            candidates.append(os.path.join(base, "android", "webcam-bridge.apk"))
     candidates.append(os.path.join(paths.APK_CACHE_DIR, f"webcam-bridge-{__version__}.apk"))
     return next((p for p in candidates if p and os.path.isfile(p)), None)
 

@@ -111,9 +111,12 @@ jobs:
           cache-dependency-path: desktop/pyproject.toml
       - run: packaging\windows\build.ps1 -VcamDir build\vcam-dist -Apk build\apk\app-debug.apk
         shell: pwsh
-      - run: python packaging/smoke_test.py build/stage/app/webcam-bridge.exe
+      - run: python packaging/smoke_test.py build/stage/app/webcam-bridge.exe (Get-Item dist/WebcamBridge-*-portable.exe).FullName
+        shell: pwsh
       - uses: actions/upload-artifact@v7
         with:
           name: windows-installer
-          path: dist/WebcamBridge-Setup-*.exe
+          path: |
+            dist/WebcamBridge-Setup-*.exe
+            dist/WebcamBridge-*-portable.exe
           retention-days: 14

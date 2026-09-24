@@ -2,7 +2,7 @@
 __main__.py — Entry point for the Webcam Bridge desktop stack.
 
 Usage:
-    webcam-bridge [--host HOST] [--port PORT] [--no-tui] [--no-browser] [--no-adb]
+    webcam-bridge [--host HOST] [--port PORT] [--browser] [--no-browser] [--no-tui] [--no-adb]
     webcam-bridge camera install | uninstall | status
     webcam-bridge doctor
     python -m webcam_bridge ...
@@ -18,6 +18,7 @@ Starts:
 """
 
 import argparse
+import atexit
 import os
 import runpy
 import shutil
@@ -26,7 +27,7 @@ import signal
 import threading
 import webbrowser
 
-from . import __version__, adb, paths, updates
+from . import __version__, adb, paths, ui, updates
 from .config      import DASHBOARD_HOST, DASHBOARD_PORT, ConfigManager
 from .broadcaster import EventBroadcaster
 from .recorder    import RecordingManager
@@ -53,8 +54,10 @@ def parse_args(argv=None) -> argparse.Namespace:
                         default=int(os.environ.get("WEBCAM_BRIDGE_PORT", DASHBOARD_PORT)),
                         help="dashboard port (default: %(default)s)")
     parser.add_argument("--no-tui", action="store_true", help="plain log output instead of the terminal UI")
+    parser.add_argument("--browser", action="store_true", default=_env_flag("WEBCAM_BRIDGE_BROWSER"),
+                        help="open the dashboard in your web browser instead of an app window")
     parser.add_argument("--no-browser", action="store_true", default=_env_flag("WEBCAM_BRIDGE_NO_BROWSER"),
-                        help="don't open the dashboard in a browser on start")
+                        help="don't open the dashboard at all (run in the background)")
     parser.add_argument("--no-adb", action="store_true", default=_env_flag("WEBCAM_BRIDGE_NO_ADB"),
                         help="don't manage the phone over USB (you run adb forward yourself)")
     parser.add_argument("--no-update-check", action="store_true",
@@ -108,6 +111,7 @@ def doctor() -> int:
     print(f"Webcam Bridge {__version__} ({'standalone' if paths.FROZEN else 'Python ' + sys.version.split()[0]})")
     print(f"  platform        {sys.platform}")
     print(f"  data            {paths.DATA_DIR}")
+    print(f"  log             {paths.LOG_PATH}")
     ffmpeg = paths.resolve_ffmpeg()
     row("FFmpeg", ffmpeg, bool(os.path.isfile(ffmpeg) or shutil.which(ffmpeg)))
 
@@ -145,11 +149,25 @@ def run_frame_sender(argv: list[str]) -> None:
     runpy.run_module("webcam_bridge.frame_sender", run_name="__main__", alter_sys=True)
 
 
+COMMANDS = ("camera", "doctor", "fetch")
+
+
+def is_cli(argv: list[str]) -> bool:
+    return bool(argv) and (argv[0] in COMMANDS or not {"-h", "--help", "--version"}.isdisjoint(argv))
+
+
 def main(argv=None) -> None:
     argv = sys.argv[1:] if argv is None else argv
     if argv[:1] == ["_frame-sender"]:
         run_frame_sender(argv[1:])
         return
+    if argv[:1] == ["_window-test"]:
+        sys.exit(ui.window_test())
+    if is_cli(argv):
+        if ui.ensure_console():
+            atexit.register(input, "\nPress Enter to close.")
+    else:
+        ui.log_to_file()
     args = parse_args(argv)
     if args.command == "camera":
         sys.exit(camera_command(args.action))
@@ -161,10 +179,18 @@ def main(argv=None) -> None:
     paths.ensure_user_dirs()
     ffmpeg_path = paths.resolve_ffmpeg()
     if not (os.path.isfile(ffmpeg_path) or shutil.which(ffmpeg_path)):
-        print(f"Error: FFmpeg not found ({ffmpeg_path}).\n"
-              "Reinstall Webcam Bridge, install FFmpeg on PATH, "
-              "or set WEBCAM_BRIDGE_FFMPEG to ffmpeg.exe.", file=sys.stderr)
+        ui.show_error(f"FFmpeg not found ({ffmpeg_path}).\n"
+                      "Reinstall Webcam Bridge, install FFmpeg on PATH, "
+                      "or set WEBCAM_BRIDGE_FFMPEG to ffmpeg.exe.")
         sys.exit(1)
+
+    dashboard_url = f"http://localhost:{args.port}"
+    use_window = not (args.no_browser or args.browser) and ui.window_supported()
+    if ui.running_instance(dashboard_url):
+        print(f"Webcam Bridge is already running: {dashboard_url}")
+        if not args.no_browser and not (use_window and ui.show_window(dashboard_url)):
+            webbrowser.open(dashboard_url)
+        return
 
     print("=" * 56)
     print(f"  Webcam Bridge v{__version__}")
@@ -181,7 +207,7 @@ def main(argv=None) -> None:
 
     # Initialize TUI
     from .tui import TuiManager, run_tui_loop
-    use_tui = sys.stdout.isatty() and not args.no_tui
+    use_tui = bool(sys.stdout and sys.stdout.isatty()) and not args.no_tui
     tui = TuiManager(broadcaster, config, port=args.port) if use_tui else None
 
     # ── 2. HTTP server ────────────────────────────────────────────────────────
@@ -241,8 +267,6 @@ def main(argv=None) -> None:
     signal.signal(signal.SIGTERM, shutdown)
 
     # ── 6. Start everything ───────────────────────────────────────────────────
-    dashboard_url = f"http://localhost:{args.port}"
-
     def start_services() -> None:
         threading.Thread(target=server.start, daemon=True, name="WebServer").start()
         pipeline.start()
@@ -252,10 +276,15 @@ def main(argv=None) -> None:
         phone_stats.start()
         if not args.no_update_check:
             updates.check_in_background(broadcaster)
-        if not args.no_browser:
+        if not (args.no_browser or use_window):
             threading.Timer(1.0, webbrowser.open, args=(dashboard_url,)).start()
 
     def wait_forever() -> None:
+        if use_window:
+            ui.wait_for_server(dashboard_url)
+            if ui.show_window(dashboard_url):
+                shutdown()
+            webbrowser.open(dashboard_url)
         try:
             threading.Event().wait()
         except KeyboardInterrupt:
@@ -269,7 +298,7 @@ def main(argv=None) -> None:
     else:
         start_services()
         print(f"\nDashboard -> {dashboard_url}")
-        print("Press Ctrl+C to stop.\n")
+        print("Close the window to stop.\n" if use_window else "Press Ctrl+C to stop.\n")
         wait_forever()
 
 

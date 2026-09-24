@@ -88,7 +88,7 @@ creates goes to the data directory (`WEBCAM_BRIDGE_HOME`, default
 | Channel | Built by | Contents |
 |---|---|---|
 | `WebcamBridge-Setup-<v>.exe` | `packaging/windows/` (PyInstaller + Inno Setup) | Standalone bridge (no Python needed), adb, the APK, the registered camera |
-| `WebcamBridge-<v>-windows-x64.zip` | same | Portable copy of the above; run `webcam-bridge camera install` once |
+| `WebcamBridge-<v>-portable.exe` | same, in one file | Unpacks itself on each start; the dashboard's Camera page installs the camera |
 | `webcam_bridge-<v>-py3-none-any.whl` | `python -m build desktop` | pip / pipx install, camera DLLs included |
 | `webcam-bridge-<v>.apk` | Gradle | The Android app |
 

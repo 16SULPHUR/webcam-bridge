@@ -1,4 +1,4 @@
-"""Check a standalone build: python packaging/smoke_test.py <path to webcam-bridge executable>"""
+"""Check standalone builds: python packaging/smoke_test.py <webcam-bridge executable>..."""
 
 import json
 import os
@@ -11,7 +11,8 @@ import time
 W, H, FRAMES = 320, 180, 150
 
 
-def main(exe: str) -> int:
+def check(exe: str) -> int:
+    print(f"== {exe}")
     home = tempfile.mkdtemp(prefix="wb-smoke-")
     env = {**os.environ, "WEBCAM_BRIDGE_HOME": home, "WEBCAM_BRIDGE_NO_UPDATE_CHECK": "1"}
 
@@ -24,6 +25,13 @@ def main(exe: str) -> int:
         return 1
 
     subprocess.run([exe, "fetch", "models"], env=env, check=True)
+
+    if sys.platform == "win32":
+        window = subprocess.run([exe, "_window-test"], capture_output=True, text=True, env=env, timeout=120)
+        print(window.stdout.strip())
+        if window.returncode:
+            print(f"FAILED: the app window did not open\n{window.stderr}")
+            return 1
 
     cfg = os.path.join(home, "config.json")
     with open(cfg, "w") as fh:
@@ -61,4 +69,4 @@ def main(exe: str) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1]))
+    sys.exit(max(check(exe) for exe in sys.argv[1:]))

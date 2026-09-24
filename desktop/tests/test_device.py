@@ -209,3 +209,22 @@ def test_tcp_client_ignores_forwards_without_app(monkeypatch):
     server.close()
     assert b"".join(received) == b"h264"
     assert events[:2] == ["connect", "disconnect"]
+
+
+def test_single_file_build_unpacks_bundled_adb(monkeypatch, tmp_path):
+    bundle = tmp_path / "bundle"
+    (bundle / "platform-tools").mkdir(parents=True)
+    (bundle / "platform-tools" / adb.EXE).write_bytes(b"adb")
+    monkeypatch.setattr(paths, "BUNDLE_DIR", str(bundle))
+    monkeypatch.setattr(paths, "ONEFILE", True)
+    monkeypatch.setattr(paths, "TOOLS_DIR", str(tmp_path / "tools"))
+    assert adb.unpack_bundled(log=lambda _: None) == str(tmp_path / "tools" / adb.EXE)
+    assert (tmp_path / "tools" / adb.EXE).read_bytes() == b"adb"
+
+
+def test_bundled_apk_is_found(monkeypatch, tmp_path):
+    monkeypatch.delenv("WEBCAM_BRIDGE_APK", raising=False)
+    (tmp_path / "android").mkdir()
+    (tmp_path / "android" / "webcam-bridge.apk").write_bytes(b"apk")
+    monkeypatch.setattr(paths, "BUNDLE_DIR", str(tmp_path))
+    assert device.find_apk() == str(tmp_path / "android" / "webcam-bridge.apk")

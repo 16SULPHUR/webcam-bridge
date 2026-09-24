@@ -55,7 +55,7 @@ Source: "{#Stage}\vcam\x86\webcam_bridge_cam.dll"; DestDir: "{commonappdata}\Web
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
-Name: "{group}\{#AppName} (troubleshoot)"; Filename: "{cmd}"; Parameters: "/k ""{app}\{#AppExe}"" doctor"
+Name: "{group}\{#AppName} (troubleshoot)"; Filename: "{app}\{#AppExe}"; Parameters: "doctor"
 Name: "{group}\Uninstall {#AppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 

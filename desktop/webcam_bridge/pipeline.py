@@ -16,6 +16,7 @@ import threading
 import time
 from typing import Optional, Callable
 
+from .adb import NO_WINDOW
 from .broadcaster import EventBroadcaster
 from .config import ConfigManager
 from .ffmpeg_utils import build_vcam_args
@@ -158,6 +159,7 @@ class Pipeline:
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            creationflags=NO_WINDOW,
         )
         threading.Thread(
             target=self._drain_vcam_stdout,
@@ -183,6 +185,7 @@ class Pipeline:
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            creationflags=NO_WINDOW,
         )
         threading.Thread(
             target=self._drain_py_stdout,

@@ -6,6 +6,20 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- `WebcamBridge-<version>-portable.exe`: the whole app (adb and the Android app included) in one file.
+  It replaces the portable zip.
+- The dashboard opens in its own app window (WebView2 on Windows, WebKit on macOS) instead of a
+  terminal plus a browser tab; closing the window quits. `--browser` keeps the old behaviour.
+- Starting the app while it is already running opens the running dashboard instead of failing.
+- Windows builds write their output to `webcam-bridge.log` in the data folder; startup errors show a message box.
+
+### Changed
+- Background blur/replace and face touch-up blend with OpenCV instead of NumPy float math: about twice
+  as fast (1080p with both on: 70 ms to 36 ms per frame on a 2.1 GHz Xeon core; 720p: 26 ms to 16 ms).
+- Depends on `opencv-contrib-python` (what MediaPipe uses) instead of `opencv-python`, so only one
+  OpenCV is installed.
+
 ## [0.2.0] - 2026-09-24
 
 ### Added

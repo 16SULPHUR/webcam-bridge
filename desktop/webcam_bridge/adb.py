@@ -87,8 +87,20 @@ def download_adb(log=print) -> str:
     return os.path.join(paths.TOOLS_DIR, EXE)
 
 
+def unpack_bundled(log=print) -> str | None:
+    """The single-file exe carries adb, but the adb daemon outlives us, so it can't run from the temp folder."""
+    src = os.path.join(paths.BUNDLE_DIR or "", "platform-tools")
+    if not (paths.ONEFILE and os.path.isfile(os.path.join(src, EXE))):
+        return None
+    os.makedirs(paths.TOOLS_DIR, exist_ok=True)
+    for name in os.listdir(src):
+        shutil.copy2(os.path.join(src, name), paths.TOOLS_DIR)
+    log(f"adb installed in {paths.TOOLS_DIR}")
+    return os.path.join(paths.TOOLS_DIR, EXE)
+
+
 def ensure_adb(log=print) -> str:
-    return find_adb() or download_adb(log)
+    return find_adb() or unpack_bundled(log) or download_adb(log)
 
 
 def run(adb: str, args: list[str], serial: str | None = None, timeout: float = 10.0) -> subprocess.CompletedProcess:

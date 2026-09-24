@@ -12,6 +12,8 @@ import threading
 import time
 from typing import Optional
 
+from .adb import NO_WINDOW
+
 
 class RecordingManager:
     """
@@ -70,6 +72,7 @@ class RecordingManager:
                 stdin=subprocess.PIPE,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE,
+                creationflags=NO_WINDOW,
             )
             # Log stderr from recording FFmpeg in background
             threading.Thread(

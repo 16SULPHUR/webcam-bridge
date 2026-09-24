@@ -36,7 +36,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional
 from urllib.parse import parse_qs, unquote, urlparse
 
-from . import paths
+from . import __version__, paths
 from .broadcaster import EventBroadcaster, SseClient, VideoClient
 from .config import DASHBOARD_HOST, DASHBOARD_PORT, ConfigManager
 from .recorder import RecordingManager
@@ -82,6 +82,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._json(self.config.to_dict())
             elif path == "/api/status":
                 self._json({
+                    "app": "webcam-bridge",
+                    "version": __version__,
                     **self.broadcaster.get_stats(),
                     "config": self.config.to_dict(),
                 })

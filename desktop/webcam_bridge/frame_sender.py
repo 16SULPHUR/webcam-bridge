@@ -186,7 +186,7 @@ seg_input_w = 0
 seg_input_h = 0
 
 seg_output_lock = threading.Lock()
-seg_output_mask = None      # latest upsampled float32 3-channel mask
+seg_output_mask = None      # latest (person, background) blend weights, float32 [H, W]
 
 # Landscape model native resolution (faster: ~44% fewer FLOPs vs. model 0)
 MP_W, MP_H = 256, 144
@@ -270,10 +270,10 @@ def segmenter_thread_func():
                                      + (1.0 - _EMA_ALPHA) * _ema_mask)
                     final_mask = _ema_mask
 
-                # Stack to [H, W, 3] for compositing
-                mask_3d = np.stack((final_mask,) * 3, axis=-1)
+                # Blend weights for cv2.blendLinear: (person, background)
+                weights = (final_mask, 1.0 - final_mask)
                 with seg_output_lock:
-                    seg_output_mask = mask_3d
+                    seg_output_mask = weights
 
         except Exception as e:
             sys.stderr.write(f"[PySender] Segmenter thread exception: {e}\n")
@@ -705,7 +705,7 @@ def main():
                     frame_bgr = cv2.addWeighted(frame_bgr, 1.0 + sharpness, blurred_sh, -sharpness, 0)
 
                 # Convert BGR to RGB for downstream processing
-                frame_rgb = frame_bgr[:, :, ::-1].copy()
+                frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
 
 
 
@@ -728,19 +728,19 @@ def main():
 
                     # Read the latest computed mask from the background thread
                     with seg_output_lock:
-                        mask_3d = seg_output_mask
+                        weights = seg_output_mask
 
-                    if mask_3d is not None and mask_3d.shape[:2] == (h_rot, w_rot):
+                    if weights is not None and weights[0].shape == (h_rot, w_rot):
                         if bg_mode == "blur" and blur > 0:
                             ksize = blur * 2 + 1
                             if ksize % 2 == 0:
                                 ksize += 1
                             blurred_rgb = cv2.GaussianBlur(frame_rgb, (ksize, ksize), 0)
-                            frame_rgb = (frame_rgb * mask_3d + blurred_rgb * (1.0 - mask_3d)).astype(np.uint8)
+                            frame_rgb = cv2.blendLinear(frame_rgb, blurred_rgb, *weights)
                         elif bg_mode == "replace" and bg_image:
                             bg_rgb = get_background_rgb(bg_image, w_rot, h_rot)
                             if bg_rgb is not None:
-                                frame_rgb = (frame_rgb * mask_3d + bg_rgb * (1.0 - mask_3d)).astype(np.uint8)
+                                frame_rgb = cv2.blendLinear(frame_rgb, bg_rgb, *weights)
 
                 # 7.7 Face Touch-up (bilateral skin smoothing)
                 if face_touchup_enabled and face_touchup_strength > 0.01:

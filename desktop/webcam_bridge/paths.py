@@ -34,6 +34,10 @@ VCAM_BUNDLED_DIR = os.path.join(PACKAGE_DIR, "bin")   # <arch>/webcam_bridge_cam
 # Set in the standalone build (PyInstaller); the installer puts adb and the APK next to the exe.
 FROZEN      = bool(getattr(sys, "frozen", False))
 INSTALL_DIR = os.path.dirname(os.path.abspath(sys.executable)) if FROZEN else None
+# The single-file exe unpacks itself (adb and the APK included) to a temporary folder.
+BUNDLE_DIR  = getattr(sys, "_MEIPASS", None)
+ONEFILE     = bool(FROZEN and BUNDLE_DIR and os.path.normcase(os.path.abspath(BUNDLE_DIR)) not in
+                   {os.path.normcase(INSTALL_DIR), os.path.normcase(os.path.join(INSTALL_DIR, "_internal"))})
 
 
 def _default_home() -> str:
@@ -56,6 +60,7 @@ SKINS_DIR       = os.path.join(DATA_DIR, "skins")            # Neko skin folders
 MODELS_DIR      = os.path.join(DATA_DIR, "models")           # MediaPipe .task files
 TOOLS_DIR       = os.path.join(DATA_DIR, "platform-tools")   # downloaded adb
 APK_CACHE_DIR   = os.path.join(DATA_DIR, "apk")              # downloaded Android app
+LOG_PATH        = os.path.join(DATA_DIR, "webcam-bridge.log")  # output of the windowed app
 
 RECORDINGS_DIR = os.path.abspath(
     os.environ.get("WEBCAM_BRIDGE_RECORDINGS")

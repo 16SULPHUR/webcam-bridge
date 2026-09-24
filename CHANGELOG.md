@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-24
+
 ### Added
 - Windows installer (`WebcamBridge-Setup-<version>.exe`) and portable zip that need no Python, adb or OBS:
   they bundle the bridge, adb and the Android app, and register the Webcam Bridge camera.

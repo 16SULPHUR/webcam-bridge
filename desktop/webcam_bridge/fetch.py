@@ -1,10 +1,12 @@
 """
 fetch.py — Download optional third-party data into the user data directory.
 
-    python -m webcam_bridge.fetch models   # MediaPipe models (also downloaded on first use)
-    python -m webcam_bridge.fetch skins    # Neko skin library for custom pets
-    python -m webcam_bridge.fetch vcam     # prebuilt virtual camera DLLs (source checkouts)
-    python -m webcam_bridge.fetch all
+    webcam-bridge fetch models   # MediaPipe models (also downloaded on first use)
+    webcam-bridge fetch skins    # Neko skin library for custom pets
+    webcam-bridge fetch vcam     # prebuilt virtual camera DLLs (source checkouts)
+    webcam-bridge fetch apk      # Android app matching this version
+    webcam-bridge fetch adb      # Android platform-tools (adb)
+    webcam-bridge fetch all
 
 The models are Google's (Apache-2.0) and the Neko skins are a community
 collection without a stated license, so neither is bundled. The virtual camera
@@ -21,21 +23,34 @@ import tarfile
 import urllib.request
 import zipfile
 
-from . import paths
+from . import __version__, paths
 from .models import MODEL_URLS
 
 SKINS_TARBALL = "https://codeload.github.com/eliot-akira/neko/tar.gz/refs/heads/main"
 SKINS_SUBDIR = "2023-icon-library"
 
 RELEASES = "https://github.com/16SULPHUR/webcam-bridge/releases/latest/download"
+RELEASE_TAG = "https://github.com/16SULPHUR/webcam-bridge/releases/download/v{version}"
 VCAM_ZIP = "webcam-bridge-vcam.zip"
 
 
-def _download(url: str) -> bytes:
-    print(f"  downloading {url}")
+def _download(url: str, log=print) -> bytes:
+    log(f"  downloading {url}")
     req = urllib.request.Request(url, headers={"User-Agent": "webcam-bridge"})
-    with urllib.request.urlopen(req, timeout=60) as resp:
+    with urllib.request.urlopen(req, timeout=120) as resp:
         return resp.read()
+
+
+def _download_verified(base: str, name: str, log=print) -> bytes:
+    """Download a release asset and check it against the release's SHA256SUMS.txt."""
+    data = _download(f"{base}/{name}", log)
+    sums = _download(f"{base}/SHA256SUMS.txt", log).decode("utf-8", "replace")
+    expected = next((line.split()[0] for line in sums.splitlines()
+                     if line.split() and line.split()[-1].lstrip("*") == name), None)
+    actual = hashlib.sha256(data).hexdigest()
+    if expected != actual:
+        raise OSError(f"checksum mismatch for {name} (expected {expected}, got {actual})")
+    return data
 
 
 def fetch_models(force: bool = False) -> None:
@@ -85,13 +100,7 @@ def fetch_vcam(force: bool = False) -> None:
     if os.path.isfile(target) and not force:
         print(f"  already present in {paths.VCAM_BUNDLED_DIR}")
         return
-    data = _download(f"{RELEASES}/{VCAM_ZIP}")
-    sums = _download(f"{RELEASES}/SHA256SUMS.txt").decode("utf-8", "replace")
-    expected = next((line.split()[0] for line in sums.splitlines()
-                     if line.strip().endswith(VCAM_ZIP)), None)
-    actual = hashlib.sha256(data).hexdigest()
-    if expected != actual:
-        raise OSError(f"checksum mismatch for {VCAM_ZIP} (expected {expected}, got {actual})")
+    data = _download_verified(RELEASES, VCAM_ZIP)
     with zipfile.ZipFile(io.BytesIO(data)) as zf:
         for name in zf.namelist():
             arch, _, fname = name.partition("/")
@@ -105,10 +114,25 @@ def fetch_vcam(force: bool = False) -> None:
     print("  next: webcam-bridge camera install")
 
 
+def fetch_apk(force: bool = False, version: str = __version__, log=print) -> str:
+    """The Android app release matching this bridge version; returns its path."""
+    name = f"webcam-bridge-{version}.apk"
+    dest = os.path.join(paths.APK_CACHE_DIR, name)
+    if os.path.isfile(dest) and not force:
+        log(f"  {name} already present")
+        return dest
+    data = _download_verified(RELEASE_TAG.format(version=version), name, log)
+    os.makedirs(paths.APK_CACHE_DIR, exist_ok=True)
+    with open(dest, "wb") as out:
+        out.write(data)
+    log(f"  saved {dest}")
+    return dest
+
+
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(prog="python -m webcam_bridge.fetch", description=__doc__,
+    parser = argparse.ArgumentParser(prog="webcam-bridge fetch", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("what", choices=("models", "skins", "vcam", "all"))
+    parser.add_argument("what", choices=("models", "skins", "vcam", "apk", "adb", "all"))
     parser.add_argument("--force", action="store_true", help="download again even if present")
     args = parser.parse_args(argv)
 
@@ -119,10 +143,17 @@ def main(argv=None) -> int:
         if args.what in ("vcam", "all") and sys.platform == "win32":
             print("Virtual camera:")
             fetch_vcam(args.force)
+        if args.what in ("apk", "all"):
+            print("Android app:")
+            fetch_apk(args.force)
+        if args.what in ("adb", "all"):
+            from . import adb
+            print("adb:")
+            print(f"  {adb.download_adb() if args.force else adb.ensure_adb()}")
         if args.what in ("skins", "all"):
             print("Neko skins:")
             fetch_skins(args.force)
-    except OSError as exc:
+    except (OSError, RuntimeError) as exc:
         print(f"Download failed: {exc}", file=sys.stderr)
         return 1
     return 0

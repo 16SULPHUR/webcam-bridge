@@ -26,7 +26,7 @@ const Vcam = (() => {
       btn.textContent = 'Install camera';
       btn.dataset.action = 'install';
     } else {
-      status.innerHTML = 'Camera files missing — run <code>python -m webcam_bridge.fetch vcam</code>.';
+      status.innerHTML = 'Camera files missing — run <code>webcam-bridge fetch vcam</code>.';
       btn.hidden = true;
       return;
     }

@@ -10,7 +10,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.concurrent.Executors
 
-/** Reachable over USB once the desktop start script runs `adb reverse tcp:5134 tcp:5134`. */
+/** Reachable over USB once the desktop bridge runs `adb reverse tcp:5134 tcp:5134`. */
 const val DEFAULT_BRIDGE_ADDRESS = "127.0.0.1:5134"
 
 /**

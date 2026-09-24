@@ -26,8 +26,8 @@ body:
   - type: input
     id: desktop
     attributes:
-      label: Desktop OS and Python version
-      placeholder: Windows 11, Python 3.12
+      label: Desktop OS and how you installed
+      placeholder: Windows 11, installer / pipx / source
     validations:
       required: true
   - type: input
@@ -35,6 +35,12 @@ body:
     attributes:
       label: Phone model and Android version
       placeholder: Pixel 7, Android 14
+  - type: textarea
+    id: doctor
+    attributes:
+      label: webcam-bridge doctor
+      description: Run `webcam-bridge doctor` (or **Webcam Bridge (troubleshoot)** in the Start menu) and paste the output.
+      render: text
   - type: textarea
     id: logs
     attributes:

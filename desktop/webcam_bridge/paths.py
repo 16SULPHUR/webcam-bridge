@@ -10,6 +10,8 @@ Environment overrides:
   WEBCAM_BRIDGE_RECORDINGS  where recordings and snapshots are written
   WEBCAM_BRIDGE_FFMPEG      explicit path to the ffmpeg executable
                             (default: PATH, then the imageio-ffmpeg build)
+  WEBCAM_BRIDGE_ADB         explicit path to adb (default: PATH, then bundled/downloaded)
+  WEBCAM_BRIDGE_APK         Android app to install on the phone (default: bundled/downloaded)
   MEDIAPIPE_MODELS_DIR      extra directory searched for MediaPipe .task models
 """
 
@@ -28,6 +30,10 @@ BUNDLED_EMOJI_DIR = os.path.join(ASSETS_DIR, "emoji")
 ONEKO_GIF        = os.path.join(WEB_DIR, "img", "oneko.gif")
 FRAME_SENDER     = os.path.join(PACKAGE_DIR, "frame_sender.py")
 VCAM_BUNDLED_DIR = os.path.join(PACKAGE_DIR, "bin")   # <arch>/webcam_bridge_cam.dll (built in CI)
+
+# Set in the standalone build (PyInstaller); the installer puts adb and the APK next to the exe.
+FROZEN      = bool(getattr(sys, "frozen", False))
+INSTALL_DIR = os.path.dirname(os.path.abspath(sys.executable)) if FROZEN else None
 
 
 def _default_home() -> str:
@@ -48,6 +54,8 @@ REACTIONS_DIR   = os.path.join(DATA_DIR, "reactions")        # uploaded meme art
 EMOJI_CACHE_DIR = os.path.join(DATA_DIR, "emoji-cache")      # emoji rendered on demand
 SKINS_DIR       = os.path.join(DATA_DIR, "skins")            # Neko skin folders
 MODELS_DIR      = os.path.join(DATA_DIR, "models")           # MediaPipe .task files
+TOOLS_DIR       = os.path.join(DATA_DIR, "platform-tools")   # downloaded adb
+APK_CACHE_DIR   = os.path.join(DATA_DIR, "apk")              # downloaded Android app
 
 RECORDINGS_DIR = os.path.abspath(
     os.environ.get("WEBCAM_BRIDGE_RECORDINGS")
@@ -98,6 +106,12 @@ def resolve_ffmpeg() -> str:
         return imageio_ffmpeg.get_ffmpeg_exe()
     except Exception:
         return "ffmpeg"
+
+
+def frame_sender_command() -> list[str]:
+    if FROZEN:
+        return [sys.executable, "_frame-sender"]
+    return [sys.executable, "-u", FRAME_SENDER]
 
 
 def safe_join(base: str, rel: str) -> str | None:

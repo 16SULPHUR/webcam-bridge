@@ -32,7 +32,7 @@ cmake --build build/vcam-x86 --config Release
 
 Copy the results to `desktop/webcam_bridge/bin/x64/` and `bin/x86/`. CI does
 this for every pull request and release, so contributors who only touch Python
-can instead run `python -m webcam_bridge.fetch vcam`.
+can instead run `webcam-bridge fetch vcam`.
 
 ## Install / uninstall
 

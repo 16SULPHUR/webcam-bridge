@@ -44,15 +44,13 @@ class Pipeline:
         broadcaster: EventBroadcaster,
         recorder:    RecordingManager,
         ffmpeg_path: str,
-        python_path: str,
-        script_path: str,
+        sender_cmd:  list[str],
     ) -> None:
         self._cfg     = config
         self._bc      = broadcaster
         self._rec     = recorder
         self._ffmpeg  = ffmpeg_path
-        self._python  = python_path
-        self._script  = script_path
+        self._sender_cmd = sender_cmd
 
         self._on_stop: Optional[Callable[[], None]] = None
 
@@ -180,7 +178,7 @@ class Pipeline:
         # ── 2. Python frame_sender (Unified Filter Processor & VCam/Preview Output) ──
         # We pass only the path to config.json. The Python process reads settings dynamically from it.
         self._py_proc = subprocess.Popen(
-            [self._python, "-u", self._script, self._cfg._path],
+            [*self._sender_cmd, self._cfg._path],
             bufsize=0,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

@@ -27,6 +27,8 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val CAMERA_PERMISSION_REQUEST = 100
+        // Set by the desktop bridge (`am start --ez stream true`) to skip the mode picker.
+        const val EXTRA_STREAM = "stream"
     }
 
     private lateinit var cameraPreview: TextureView
@@ -45,13 +47,14 @@ class MainActivity : AppCompatActivity() {
 
         val prefs = getSharedPreferences("WebcamPrefs", Context.MODE_PRIVATE)
         val rememberedRole = prefs.getString("remembered_role", null)
+        val launchedByBridge = intent.getBooleanExtra(EXTRA_STREAM, false)
 
-        if (rememberedRole == "controller") {
+        if (rememberedRole == "controller" && !launchedByBridge) {
             val intent = android.content.Intent(this, ControlActivity::class.java)
             startActivity(intent)
             finish()
             return
-        } else if (rememberedRole == "streamer") {
+        } else if (rememberedRole == "streamer" || launchedByBridge) {
             isStreamerModeSelected = true
         }
 

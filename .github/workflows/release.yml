@@ -1,21 +1,24 @@
 name: Release
 
-# Push a tag like v0.2.0 to publish a release with the APK, the desktop zip
-# (virtual camera DLLs included) and the standalone camera DLL zip.
-# Optional repository secrets for a properly signed APK:
-#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
-# Without them the APK is signed with a throwaway debug key (installable, but
-# users must uninstall before updating to a differently signed build).
+# Publish with `python scripts/release.py bump X.Y.Z && git push --follow-tags`.
+# See docs/releasing.md for the one-time setup (APK signing, winget, PyPI).
 
 on:
   push:
     tags: ["v*"]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 scripts/release.py check "$GITHUB_REF_NAME"
+
   vcam:
+    needs: verify
     runs-on: windows-latest
     strategy:
       matrix:
@@ -32,22 +35,16 @@ jobs:
           path: build/vcam/Release/webcam_bridge_cam.dll
           if-no-files-found: error
 
-  release:
-    needs: vcam
+  android:
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/download-artifact@v8
-        with:
-          pattern: vcam-*
-          path: vcam-dist
-
       - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v6
-
       - name: Decode signing key
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -58,7 +55,6 @@ jobs:
           else
             echo "::warning::No signing secrets configured; APK will be debug-signed."
           fi
-
       - name: Build APK
         working-directory: android
         env:
@@ -68,33 +64,142 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease
+      - uses: actions/upload-artifact@v7
+        with:
+          name: apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
 
-      - name: Package artifacts
+  windows:
+    needs: [vcam, android]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: vcam-x64
+          path: build/vcam-dist/x64
+      - uses: actions/download-artifact@v8
+        with:
+          name: vcam-x86
+          path: build/vcam-dist/x86
+      - uses: actions/download-artifact@v8
+        with:
+          name: apk
+          path: build/apk
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: packaging\windows\build.ps1 -VcamDir build\vcam-dist -Apk build\apk\app-release.apk
+        shell: pwsh
+      - run: python packaging/smoke_test.py build/stage/app/webcam-bridge.exe
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows
+          path: |
+            dist/WebcamBridge-Setup-*.exe
+            dist/WebcamBridge-*-windows-x64.zip
+          if-no-files-found: error
+
+  python:
+    needs: vcam
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: vcam-x64
+          path: desktop/webcam_bridge/bin/x64
+      - uses: actions/download-artifact@v8
+        with:
+          name: vcam-x86
+          path: desktop/webcam_bridge/bin/x86
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: |
+          python -m pip install build
+          python -m build desktop --outdir dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: python
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    needs: [android, windows, python, vcam]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+      - name: Collect files
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          mkdir -p dist
-          cp android/app/build/outputs/apk/release/app-release.apk "dist/webcam-bridge-${VERSION}.apk"
-          # Standalone camera DLLs: x64/ and x86/webcam_bridge_cam.dll
-          mkdir -p staging/x64 staging/x86
-          cp vcam-dist/vcam-x64/webcam_bridge_cam.dll staging/x64/
-          cp vcam-dist/vcam-x86/webcam_bridge_cam.dll staging/x86/
+          mkdir -p dist staging/x64 staging/x86
+          cp artifacts/apk/app-release.apk "dist/webcam-bridge-${VERSION}.apk"
+          cp artifacts/windows/* dist/
+          cp artifacts/python/* dist/
+          cp artifacts/vcam-x64/webcam_bridge_cam.dll staging/x64/
+          cp artifacts/vcam-x86/webcam_bridge_cam.dll staging/x86/
           (cd staging && zip -q -r ../dist/webcam-bridge-vcam.zip x64 x86)
-
-          # Desktop zip: tracked sources plus the prebuilt DLLs
-          PREFIX="webcam-bridge-${VERSION}"
-          git archive --format=zip --prefix="${PREFIX}/" \
-            -o "dist/webcam-bridge-desktop-${VERSION}.zip" HEAD \
-            desktop scripts docs vcam README.md LICENSE THIRD_PARTY_NOTICES.md CHANGELOG.md
-          mkdir -p "zipadd/${PREFIX}/desktop/webcam_bridge/bin"
-          cp -r staging/x64 staging/x86 "zipadd/${PREFIX}/desktop/webcam_bridge/bin/"
-          (cd zipadd && zip -q -r "../dist/webcam-bridge-desktop-${VERSION}.zip" "${PREFIX}")
           (cd dist && sha256sum * > SHA256SUMS.txt)
-
+          ls -la dist
+      - name: Release notes
+        env:
+          WINGET_ID: ${{ vars.WINGET_IDENTIFIER }}
+          PYPI: ${{ vars.PYPI_PUBLISH }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          BASE="https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME"
+          {
+            echo "## Install"
+            echo
+            echo -n "- **Windows:** download \`WebcamBridge-Setup-${VERSION}.exe\` below and run it"
+            if [ -n "$WINGET_ID" ]; then echo " (or \`winget install $WINGET_ID\`)."; else echo "."; fi
+            if [ "$PYPI" = "true" ]; then
+              echo "- **Linux / macOS:** \`pipx install webcam-bridge\`"
+            else
+              echo "- **Linux / macOS:** \`pipx install $BASE/webcam_bridge-${VERSION}-py3-none-any.whl\`"
+            fi
+            echo "- **Phone:** plug it in with USB debugging on and the bridge installs the app for you, or sideload \`webcam-bridge-${VERSION}.apk\`."
+            echo
+            python3 scripts/release.py notes "$VERSION"
+          } > notes.md
+          cat notes.md
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" dist/* \
             --title "Webcam Bridge $GITHUB_REF_NAME" \
-            --generate-notes \
+            --notes-file notes.md \
             --verify-tag
+
+  pypi:
+    needs: release
+    if: vars.PYPI_PUBLISH == 'true'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: python
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  winget:
+    needs: release
+    if: vars.WINGET_IDENTIFIER != ''
+    runs-on: ubuntu-latest
+    steps:
+      - uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: ${{ vars.WINGET_IDENTIFIER }}
+          installers-regex: 'WebcamBridge-Setup-.*\.exe$'
+          token: ${{ secrets.WINGET_TOKEN }}

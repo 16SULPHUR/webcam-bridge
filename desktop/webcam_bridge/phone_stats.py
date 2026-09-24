@@ -13,26 +13,25 @@ Results are pushed into the EventBroadcaster so SSE clients receive them.
 import subprocess
 import threading
 import time
-from typing import List, Optional
+from typing import Callable, List, Optional
 
+from .adb import NO_WINDOW
 from .broadcaster import EventBroadcaster
 
 
 # Interval between ADB stat polls (seconds)
 POLL_INTERVAL = 10.0
 
-# ADB binary — assumes it's on PATH
-ADB = "adb"
 
-
-def _run_adb(args: List[str], timeout: float = 5.0) -> Optional[str]:
+def _run_adb(base: List[str], args: List[str], timeout: float = 5.0) -> Optional[str]:
     """Run an adb command and return stdout, or None on failure."""
     try:
         result = subprocess.run(
-            [ADB] + args,
+            base + args,
             capture_output=True,
             text=True,
             timeout=timeout,
+            creationflags=NO_WINDOW,
         )
         if result.returncode == 0:
             return result.stdout.strip()
@@ -98,8 +97,11 @@ class PhoneStatsCollector:
     into the EventBroadcaster.
     """
 
-    def __init__(self, broadcaster: EventBroadcaster) -> None:
+    def __init__(self, broadcaster: EventBroadcaster,
+                 adb_command: Callable[[], Optional[List[str]]]) -> None:
         self._bc = broadcaster
+        self._adb_command = adb_command
+        self._base: List[str] = []
         self._running = False
         self._thread: Optional[threading.Thread] = None
 
@@ -123,14 +125,17 @@ class PhoneStatsCollector:
     def stop(self) -> None:
         self._running = False
 
+    def _adb(self, args: List[str]) -> Optional[str]:
+        return _run_adb(self._base, args)
+
     def _fetch_static_props(self) -> None:
         """Fetch device model and Android version (these don't change)."""
         if self._model is None:
-            self._model = _run_adb(["shell", "getprop", "ro.product.model"])
+            self._model = self._adb(["shell", "getprop", "ro.product.model"])
         if self._android_version is None:
-            self._android_version = _run_adb(["shell", "getprop", "ro.build.version.release"])
+            self._android_version = self._adb(["shell", "getprop", "ro.build.version.release"])
         if self._device_name is None:
-            self._device_name = _run_adb(["shell", "getprop", "ro.product.device"])
+            self._device_name = self._adb(["shell", "getprop", "ro.product.device"])
 
     def _poll_loop(self) -> None:
         self._bc.broadcast_log("system", "[PhoneStats] Phone stats collector started.")
@@ -140,14 +145,21 @@ class PhoneStatsCollector:
 
         while self._running:
             try:
+                base = self._adb_command() or []
+                if base != self._base:
+                    self._base = base
+                    self._model = self._android_version = self._device_name = None
+                if not base:
+                    time.sleep(1.0)
+                    continue
                 self._fetch_static_props()
 
                 # Battery info
-                battery_dump = _run_adb(["shell", "dumpsys", "battery"])
+                battery_dump = self._adb(["shell", "dumpsys", "battery"])
                 battery = _parse_battery_dump(battery_dump) if battery_dump else {}
 
                 # Uptime
-                uptime_raw = _run_adb(["shell", "cat", "/proc/uptime"])
+                uptime_raw = self._adb(["shell", "cat", "/proc/uptime"])
                 uptime_secs = None
                 if uptime_raw:
                     try:

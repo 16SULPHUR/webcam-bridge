@@ -113,6 +113,8 @@ button, input, select { font-family: inherit; }
   position: sticky; top: 0; z-index: 20;
 }
 .topbar h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: -0.2px; }
+.update-link { margin-left: 14px; font-size: 12px; color: var(--accent); text-decoration: none; }
+.update-link:hover { text-decoration: underline; }
 .topbar-stats { margin-left: auto; display: flex; align-items: center; gap: 18px; }
 
 .metric { display: flex; flex-direction: column; line-height: 1.2; }

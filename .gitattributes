@@ -9,3 +9,4 @@ gradlew text eol=lf
 *.jpg  binary
 *.gif  binary
 *.jar  binary
+*.ico  binary

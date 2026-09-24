@@ -1,5 +1,6 @@
 @echo off
-REM setup.bat — create a virtual environment and install the desktop bridge.
+REM setup.bat — install the desktop bridge from a source checkout (for development).
+REM Most people should use the installer from the Releases page instead.
 REM Usage: scripts\setup.bat            (core features)
 REM        scripts\setup.bat rvm        (also install PyTorch for RVM segmentation)
 
@@ -33,7 +34,7 @@ if errorlevel 1 exit /b 1
 
 REM Built-in virtual camera: release zips ship the DLLs, git checkouts download them.
 if not exist "%ROOT%\desktop\webcam_bridge\bin\x64\webcam_bridge_cam.dll" (
-    "%VENV%\Scripts\python.exe" -m webcam_bridge.fetch vcam
+    "%VENV%\Scripts\webcam-bridge.exe" fetch vcam
 )
 "%VENV%\Scripts\webcam-bridge.exe" camera status | find "not installed" >nul
 if %errorlevel%==0 (
@@ -42,8 +43,6 @@ if %errorlevel%==0 (
     "%VENV%\Scripts\webcam-bridge.exe" camera install || echo [WARN] Camera not installed - OBS Virtual Camera will be used instead.
 )
 
-echo.
-where adb    >nul 2>&1 || echo [WARN] adb not found on PATH - install Android platform-tools.
 echo.
 echo Setup complete. Start the bridge with: scripts\start.bat
 endlocal

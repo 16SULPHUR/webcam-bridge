@@ -75,6 +75,10 @@ class EventBroadcaster:
             "phoneBatteryHealth":  None,
             "phoneTemperature":    None,
             "phoneUptime":         None,
+            # USB setup (DeviceManager) and release check
+            "deviceState":         None,
+            "deviceHint":          "",
+            "updateAvailable":     None,
         }
         self._last_bytes: int   = 0
         self._last_ts:    float = time.monotonic()

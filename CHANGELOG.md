@@ -15,6 +15,8 @@ All notable changes to this project are documented here. The format follows
 - Windows builds write their output to `webcam-bridge.log` in the data folder; startup errors show a message box.
 
 ### Changed
+- Background blur/replace and face touch-up blend with OpenCV instead of NumPy float math: about twice
+  as fast (1080p with both on: 70 ms to 36 ms per frame on a 2.1 GHz Xeon core; 720p: 26 ms to 16 ms).
 - Depends on `opencv-contrib-python` (what MediaPipe uses) instead of `opencv-python`, so only one
   OpenCV is installed.
 

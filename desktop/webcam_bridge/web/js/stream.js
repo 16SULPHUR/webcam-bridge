@@ -136,6 +136,7 @@ const Stream = (() => {
       }
     }
     phoneStats(data);
+    Connection.applyStatus(data);
   }
 
   function setText(id, value) {

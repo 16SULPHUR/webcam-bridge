@@ -88,6 +88,7 @@ class CameraStreamer(
 
     // TCP
     private var serverSocket: ServerSocket? = null
+    private val discovery = DiscoveryResponder(context, TCP_PORT)
 
     /**
      * Shared SPS/PPS bytes sent to every new TCP client so they can decode immediately.
@@ -125,14 +126,16 @@ class CameraStreamer(
 
         // Start TCP server on a separate thread
         serverThread = Thread(::runTcpServer, "TcpServerThread").also { it.start() }
+        discovery.start()
 
-        statusCallback("Server started on :$TCP_PORT — waiting for PC connection…")
+        statusCallback(waitingStatus())
     }
 
     fun stop() {
         if (!running.getAndSet(false)) return
 
         statusCallback("Stopping…")
+        discovery.stop()
 
         try { captureSession?.close() } catch (e: Exception) { Log.w(TAG, e) }
         try { cameraDevice?.close()  } catch (e: Exception) { Log.w(TAG, e) }
@@ -408,6 +411,12 @@ class CameraStreamer(
     // TCP Server
     // ─────────────────────────────────────────────────────────────────────────
 
+    private fun waitingStatus(): String {
+        val ip = DiscoveryResponder.wifiAddress()
+        return if (ip == null) "Waiting for the PC (USB)…"
+        else "Waiting for the PC (USB, or Wi-Fi at $ip)…"
+    }
+
     /**
      * Runs a TCP server that accepts one client at a time.
      * On connect: sends SPS+PPS, then the encoder drain thread delivers subsequent NALUs.
@@ -481,7 +490,7 @@ class CameraStreamer(
                 clientStream = null
                 try { client.close() } catch (e: Exception) { /* ignore */ }
                 Log.i(TAG, "Client disconnected — waiting for next connection")
-                statusCallback("PC disconnected — waiting for reconnect…")
+                statusCallback("PC disconnected. " + waitingStatus())
             }
         } catch (e: Exception) {
             if (running.get()) {

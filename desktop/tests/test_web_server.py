@@ -95,3 +95,26 @@ def test_vcam_install_uses_vcam_module(server, monkeypatch):
     assert resp.status == 200
     assert json.loads(data)["message"] == "ok"
     assert calls == ["install"]
+
+
+def test_wifi_discover_switches_to_found_phone(server, monkeypatch):
+    from webcam_bridge import wifi
+    disconnects = []
+
+    class Client:
+        def disconnect(self):
+            disconnects.append(1)
+
+        def send_command(self, payload):
+            pass
+
+    monkeypatch.setattr(BridgeHandler, "_tcp_client_ref", Client())
+    monkeypatch.setattr(wifi, "discover", lambda: [{"host": "192.168.1.50", "port": 8080, "name": "Pixel"}])
+    resp, data = request(server, "POST", "/api/wifi/discover")
+    cfg = json.loads(data)["config"]
+    assert (cfg["connection"], cfg["wifiHost"]) == ("wifi", "192.168.1.50")
+    assert disconnects
+
+    disconnects.clear()
+    request(server, "POST", "/api/config", json.dumps({"connection": "usb"}), {"Content-Type": "application/json"})
+    assert disconnects

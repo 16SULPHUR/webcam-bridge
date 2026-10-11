@@ -7,6 +7,8 @@ All notable changes to this project are documented here. The format follows
 ## [Unreleased]
 
 ### Added
+- Wi-Fi streaming: choose **USB cable** or **Wi-Fi** on the dashboard. The phone's address is saved
+  whenever it is plugged in, and **Find phone** discovers the app on the local network, so no IP typing is needed.
 - `WebcamBridge-<version>-portable.exe`: the whole app (adb and the Android app included) in one file.
   It replaces the portable zip.
 - The dashboard opens in its own app window (WebView2 on Windows, WebKit on macOS) instead of a

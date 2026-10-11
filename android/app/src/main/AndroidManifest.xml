@@ -12,6 +12,9 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Required: TCP server socket -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Wi-Fi mode: answer the PC's discovery broadcasts -->
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
 
     <!-- Any camera works; a back camera is preferred but not required -->
     <uses-feature

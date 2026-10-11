@@ -26,6 +26,9 @@ _DEFAULTS: dict[str, Any] = {
     "vcamEnabled": True,
     "vcamBackend": "auto",  # "auto" | "builtin" | "obs" — see vcam.py
     "zoom":        1.0,
+    "connection":  "usb",  # "usb" | "wifi"
+    "wifiHost":    "",     # phone address, filled in over USB or by discovery
+    "wifiPort":    8080,
     # Video-processing (applied via FFmpeg eq / unsharp filters)
     "brightness":  0.0,    # -1.0 → +1.0  (FFmpeg eq=brightness)
     "contrast":    1.0,    # 0.5  → 2.0   (FFmpeg eq=contrast)

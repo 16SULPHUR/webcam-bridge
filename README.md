@@ -9,7 +9,7 @@ bridge installs the phone app for you, and there's nothing else to set up.
 [![Downloads](https://img.shields.io/github/downloads/16SULPHUR/webcam-bridge/total)](https://github.com/16SULPHUR/webcam-bridge/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-- 📱 **Phone camera over USB**: low latency, no Wi-Fi needed
+- 📱 **Phone camera over USB or Wi-Fi**: USB for the lowest latency, Wi-Fi to go cable-free
 - 🔌 **Plug and play**: finds the phone, installs and updates the app, starts streaming
 - 🎛️ **Web dashboard**: live preview, resolution / FPS, zoom, colour, sharpness
 - 🌄 **Virtual backgrounds**: blur or replace, with MediaPipe or Robust Video Matting
@@ -104,6 +104,22 @@ or use the dashboard's **Camera** page. The **Virtual camera** setting picks the
 output: *Automatic* uses Webcam Bridge when installed and OBS Virtual Camera
 otherwise. Details and limitations: [vcam/windows/README.md](vcam/windows/README.md).
 
+## Wi-Fi streaming
+
+Pick **Wi-Fi** under **Phone connection** on the dashboard's Live page. The
+phone and the PC must be on the same network.
+
+- If the phone has been plugged in once, the bridge already knows its Wi-Fi
+  address: unplug it and keep streaming.
+- Otherwise open Webcam Bridge on the phone and click **Find phone**; the bridge
+  finds it on the network by itself. You can also type the address the phone
+  app shows.
+
+The bridge looks for the phone again if its address changes. USB remains the
+best choice for latency and battery; on Wi-Fi keep the phone on charge. The
+camera stream is not encrypted or password-protected, so use Wi-Fi mode on
+networks you trust.
+
 ## Phone remote control
 
 The app's **Control** screen and home-screen widget talk to the dashboard. The
@@ -130,6 +146,7 @@ artwork is documented in [docs/reactions.md](docs/reactions.md).
 | Camera shows a dark frozen image | The bridge stopped; start it again |
 | Windows SmartScreen warns about the installer | Click **More info → Run anyway**; the installer isn't code-signed yet |
 | Background removal is slow | Use the MediaPipe engine or a lower resolution. The RVM engine needs the pip install with the `rvm` extra |
+| *Find phone* finds nothing | Open the app on the phone, check both devices are on the same Wi-Fi (not a guest network, which often blocks devices from seeing each other), or type the address the phone app shows |
 | Camera permission denied | Android Settings → Apps → Webcam Bridge → Permissions |
 
 Still stuck? [Open an issue](https://github.com/16SULPHUR/webcam-bridge/issues/new/choose)

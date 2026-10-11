@@ -185,7 +185,7 @@ def test_tcp_client_ignores_forwards_without_app(monkeypatch):
     server = socket.socket()
     server.bind(("127.0.0.1", 0))
     server.listen()
-    monkeypatch.setattr(tcp_client, "ADB_PORT", server.getsockname()[1])
+    monkeypatch.setattr(tcp_client, "USB_TARGET", server.getsockname())
     monkeypatch.setattr(tcp_client, "RECONNECT_DELAY", 0.05)
 
     def serve():

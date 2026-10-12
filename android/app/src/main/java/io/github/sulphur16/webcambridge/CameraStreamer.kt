@@ -111,25 +111,36 @@ class CameraStreamer(
         previewTextureView = textureView
     }
 
-    fun start() {
-        if (running.getAndSet(true)) return
+    /** Returns false (and reports why) when the camera or encoder could not be started. */
+    fun start(): Boolean {
+        if (running.getAndSet(true)) return true
 
-        // Start camera background thread
-        cameraThread = HandlerThread("CameraThread").also { it.start() }
-        cameraHandler = Handler(cameraThread!!.looper)
+        try {
+            // Start camera background thread
+            cameraThread = HandlerThread("CameraThread").also { it.start() }
+            cameraHandler = Handler(cameraThread!!.looper)
 
-        // Start encoder first so its input Surface is ready for camera
-        setupEncoder()
+            // Start encoder first so its input Surface is ready for camera
+            setupEncoder()
 
-        // Open camera
-        openCamera()
+            // Open camera
+            openCamera()
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not start streaming", e)
+            stop()
+            statusCallback(errorStatus(e))
+            return false
+        }
 
         // Start TCP server on a separate thread
         serverThread = Thread(::runTcpServer, "TcpServerThread").also { it.start() }
         discovery.start()
 
         statusCallback(waitingStatus())
+        return true
     }
+
+    private fun errorStatus(e: Exception) = "Camera error: ${e.message ?: e.javaClass.simpleName}"
 
     fun stop() {
         if (!running.getAndSet(false)) return
@@ -153,12 +164,13 @@ class CameraStreamer(
     // ─────────────────────────────────────────────────────────────────────────
     // MediaCodec Encoder Setup
     // ─────────────────────────────────────────────────────────────────────────
-    private fun setupEncoder() {
-        val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, VIDEO_WIDTH, VIDEO_HEIGHT).apply {
+    private fun encoderFormat(tuned: Boolean): MediaFormat =
+        MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, VIDEO_WIDTH, VIDEO_HEIGHT).apply {
             setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
             setInteger(MediaFormat.KEY_BIT_RATE, VIDEO_BITRATE)
             setInteger(MediaFormat.KEY_FRAME_RATE, VIDEO_FPS)
             setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL)
+            if (!tuned) return@apply
 
             // ─── TUNE: Low-latency encoding flags ─────────────────────────────────
             setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline)
@@ -172,8 +184,16 @@ class CameraStreamer(
             }
         }
 
+    private fun setupEncoder() {
         encoder = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
-        encoder!!.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+        try {
+            encoder!!.configure(encoderFormat(tuned = true), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+        } catch (e: Exception) {
+            // Older encoders can reject the low-latency settings
+            Log.w(TAG, "Encoder rejected tuned settings, using defaults", e)
+            encoder!!.reset()
+            encoder!!.configure(encoderFormat(tuned = false), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+        }
 
         // Camera will write frames directly into this Surface — no CPU copy needed
         encoderInputSurface = encoder!!.createInputSurface()
@@ -218,45 +238,48 @@ class CameraStreamer(
 
         while (running.get()) {
             val enc = encoder ?: break
-
-            // Dequeue output buffer (timeout 10ms to allow loop to check running flag)
-            val outIndex = try {
-                enc.dequeueOutputBuffer(bufferInfo, 10_000)
+            try {
+                drainOnce(enc, bufferInfo)
             } catch (e: IllegalStateException) {
-                break  // encoder was stopped
-            }
-
-            when {
-                outIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
-                    // Format changed — SPS/PPS will arrive as CODEC_CONFIG buffer next
-                    Log.i(TAG, "Encoder output format changed")
-                }
-                outIndex >= 0 -> {
-                    val outBuf: ByteBuffer = enc.getOutputBuffer(outIndex) ?: continue
-                    outBuf.position(bufferInfo.offset)
-                    outBuf.limit(bufferInfo.offset + bufferInfo.size)
-
-                    val raw = ByteArray(bufferInfo.size)
-                    outBuf.get(raw)
-
-                    if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) {
-                        // SPS+PPS — ensure Annex B start codes, then:
-                        // 1. Save for future new clients
-                        // 2. Also send to any currently connected client (race-condition fix)
-                        val data = ensureAnnexB(raw)
-                        spsppsBuf = data
-                        sendToClient(data)  // send to existing client if any
-                        Log.i(TAG, "Got SPS/PPS (${data.size} bytes), sent to existing client")
-                    } else {
-                        // Regular encoded frame — send to current TCP client
-                        sendToClient(raw)
-                    }
-
-                    enc.releaseOutputBuffer(outIndex, false)
-                }
+                break  // encoder was stopped or failed
             }
         }
         Log.i(TAG, "Encoder drain thread exiting")
+    }
+
+    private fun drainOnce(enc: MediaCodec, bufferInfo: MediaCodec.BufferInfo) {
+        // Dequeue output buffer (timeout 10ms to allow loop to check running flag)
+        val outIndex = enc.dequeueOutputBuffer(bufferInfo, 10_000)
+
+        when {
+            outIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
+                // Format changed — SPS/PPS will arrive as CODEC_CONFIG buffer next
+                Log.i(TAG, "Encoder output format changed")
+            }
+            outIndex >= 0 -> {
+                val outBuf: ByteBuffer = enc.getOutputBuffer(outIndex) ?: return
+                outBuf.position(bufferInfo.offset)
+                outBuf.limit(bufferInfo.offset + bufferInfo.size)
+
+                val raw = ByteArray(bufferInfo.size)
+                outBuf.get(raw)
+
+                if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) {
+                    // SPS+PPS — ensure Annex B start codes, then:
+                    // 1. Save for future new clients
+                    // 2. Also send to any currently connected client (race-condition fix)
+                    val data = ensureAnnexB(raw)
+                    spsppsBuf = data
+                    sendToClient(data)  // send to existing client if any
+                    Log.i(TAG, "Got SPS/PPS (${data.size} bytes), sent to existing client")
+                } else {
+                    // Regular encoded frame — send to current TCP client
+                    sendToClient(raw)
+                }
+
+                enc.releaseOutputBuffer(outIndex, false)
+            }
+        }
     }
 
     /**
@@ -292,7 +315,12 @@ class CameraStreamer(
                 } catch (e: Exception) {
                     Log.w(TAG, "Error closing camera for switch: ${e.message}")
                 }
-                openCamera()
+                try {
+                    openCamera()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Could not open camera $cameraId", e)
+                    statusCallback(errorStatus(e))
+                }
             }
         }
     }
@@ -343,7 +371,12 @@ class CameraStreamer(
             override fun onOpened(camera: CameraDevice) {
                 Log.i(TAG, "Camera opened")
                 cameraDevice = camera
-                createCaptureSession(camera)
+                try {
+                    createCaptureSession(camera)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Could not create capture session", e)
+                    statusCallback(errorStatus(e))
+                }
             }
 
             override fun onDisconnected(camera: CameraDevice) {
@@ -379,23 +412,12 @@ class CameraStreamer(
             object : CameraCaptureSession.StateCallback() {
                 override fun onConfigured(session: CameraCaptureSession) {
                     captureSession = session
-
-                    // Build a repeating capture request targeting encoder + preview surfaces
-                    val request = camera.createCaptureRequest(CameraDevice.TEMPLATE_RECORD).apply {
-                        addTarget(encoderSurface)
-                        previewSurface?.let { addTarget(it) }
-
-                        // ─── TUNE: AE / AF modes ─────────────────────────────────────
-                        set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO)
-                        set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
-                        // ─── TUNE: Lock sensor framerate to 30 FPS to prevent variable frame delays
-                        set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, android.util.Range<Int>(30, 30))
-                        // ─────────────────────────────────────────────────────────────
-                    }.build()
-
-                    session.setRepeatingRequest(request, null, cameraHandler)
-                    Log.i(TAG, "Capture session configured — encoding started with preview=${previewSurface != null}")
-                    statusCallback("Camera ready — waiting for PC to connect…")
+                    try {
+                        startRepeating(camera, session, encoderSurface, previewSurface)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Could not start the capture request", e)
+                        statusCallback(errorStatus(e))
+                    }
                 }
 
                 override fun onConfigureFailed(session: CameraCaptureSession) {
@@ -405,6 +427,39 @@ class CameraStreamer(
             },
             cameraHandler
         )
+    }
+
+    private fun startRepeating(
+        camera: CameraDevice,
+        session: CameraCaptureSession,
+        encoderSurface: Surface,
+        previewSurface: Surface?
+    ) {
+        // Build a repeating capture request targeting encoder + preview surfaces
+        val request = camera.createCaptureRequest(CameraDevice.TEMPLATE_RECORD).apply {
+            addTarget(encoderSurface)
+            previewSurface?.let { addTarget(it) }
+
+            // ─── TUNE: AE / AF modes ─────────────────────────────────────
+            set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO)
+            set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
+            // ─── TUNE: Lock sensor framerate to 30 FPS to prevent variable frame delays
+            fpsRange(camera.id)?.let { set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, it) }
+            // ─────────────────────────────────────────────────────────────
+        }.build()
+
+        session.setRepeatingRequest(request, null, cameraHandler)
+        Log.i(TAG, "Capture session configured — encoding started with preview=${previewSurface != null}")
+        statusCallback("Camera ready — waiting for PC to connect…")
+    }
+
+    /** 30–30 if the camera supports it, otherwise a range that tops out at 30 FPS. */
+    private fun fpsRange(cameraId: String): android.util.Range<Int>? {
+        val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        val ranges = manager.getCameraCharacteristics(cameraId)
+            .get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES) ?: return null
+        return ranges.firstOrNull { it.lower == VIDEO_FPS && it.upper == VIDEO_FPS }
+            ?: ranges.filter { it.upper == VIDEO_FPS }.maxByOrNull { it.lower }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -455,9 +510,13 @@ class CameraStreamer(
 
                 // Request a fresh IDR keyframe from the encoder so the client gets
                 // a complete, self-contained frame immediately after SPS/PPS
-                encoder?.setParameters(android.os.Bundle().apply {
-                    putInt(android.media.MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0)
-                })
+                try {
+                    encoder?.setParameters(android.os.Bundle().apply {
+                        putInt(android.media.MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0)
+                    })
+                } catch (e: IllegalStateException) {
+                    Log.w(TAG, "Could not request a keyframe: ${e.message}")
+                }
 
                 // Block here until the client disconnects by reading from its InputStream.
                 // Since the client never sends data, read() will block until EOF (-1) or exception.

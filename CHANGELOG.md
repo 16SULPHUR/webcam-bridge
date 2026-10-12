@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- Android: a camera or encoder that fails to start shows the error on screen instead of crashing the app.
+- Android: older phones whose camera or encoder rejects the 30 FPS or low-latency settings fall back to settings they support.
+
+### Added
+- Android: after a crash the app offers a crash report to copy or share on its next launch, so no USB data cable is needed.
+
 ## [0.3.0] - 2026-10-12
 
 ### Added

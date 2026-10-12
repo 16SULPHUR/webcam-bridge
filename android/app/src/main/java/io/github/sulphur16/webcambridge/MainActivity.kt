@@ -62,6 +62,7 @@ class MainActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         setContentView(R.layout.activity_main)
+        CrashReporter.showPendingReport(this)
 
         cameraPreview = findViewById(R.id.cameraPreview)
         tvStatus      = findViewById(R.id.tvStatus)
@@ -162,11 +163,14 @@ class MainActivity : AppCompatActivity() {
         }
 
         tvStatus.text = "Starting camera…"
+        CrashReporter.setStreaming(this, true)
         isStreaming = streamer.start()
+        if (!isStreaming) CrashReporter.setStreaming(this, false)
     }
 
     private fun stopStreaming() {
         isStreaming = false
+        CrashReporter.setStreaming(this, false)
         tvStatus.text = "Stopped"
         tvRecBadge.visibility = View.GONE
         streamer.stop()

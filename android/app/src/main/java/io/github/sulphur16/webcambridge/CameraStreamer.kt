@@ -164,12 +164,13 @@ class CameraStreamer(
     // ─────────────────────────────────────────────────────────────────────────
     // MediaCodec Encoder Setup
     // ─────────────────────────────────────────────────────────────────────────
-    private fun setupEncoder() {
-        val format = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, VIDEO_WIDTH, VIDEO_HEIGHT).apply {
+    private fun encoderFormat(tuned: Boolean): MediaFormat =
+        MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, VIDEO_WIDTH, VIDEO_HEIGHT).apply {
             setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface)
             setInteger(MediaFormat.KEY_BIT_RATE, VIDEO_BITRATE)
             setInteger(MediaFormat.KEY_FRAME_RATE, VIDEO_FPS)
             setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL)
+            if (!tuned) return@apply
 
             // ─── TUNE: Low-latency encoding flags ─────────────────────────────────
             setInteger(MediaFormat.KEY_PROFILE, MediaCodecInfo.CodecProfileLevel.AVCProfileBaseline)
@@ -183,8 +184,16 @@ class CameraStreamer(
             }
         }
 
+    private fun setupEncoder() {
         encoder = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC)
-        encoder!!.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+        try {
+            encoder!!.configure(encoderFormat(tuned = true), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+        } catch (e: Exception) {
+            // Older encoders can reject the low-latency settings
+            Log.w(TAG, "Encoder rejected tuned settings, using defaults", e)
+            encoder!!.reset()
+            encoder!!.configure(encoderFormat(tuned = false), null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
+        }
 
         // Camera will write frames directly into this Surface — no CPU copy needed
         encoderInputSurface = encoder!!.createInputSurface()
@@ -435,13 +444,22 @@ class CameraStreamer(
             set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO)
             set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
             // ─── TUNE: Lock sensor framerate to 30 FPS to prevent variable frame delays
-            set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, android.util.Range<Int>(30, 30))
+            fpsRange(camera.id)?.let { set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, it) }
             // ─────────────────────────────────────────────────────────────
         }.build()
 
         session.setRepeatingRequest(request, null, cameraHandler)
         Log.i(TAG, "Capture session configured — encoding started with preview=${previewSurface != null}")
         statusCallback("Camera ready — waiting for PC to connect…")
+    }
+
+    /** 30–30 if the camera supports it, otherwise a range that tops out at 30 FPS. */
+    private fun fpsRange(cameraId: String): android.util.Range<Int>? {
+        val manager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+        val ranges = manager.getCameraCharacteristics(cameraId)
+            .get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES) ?: return null
+        return ranges.firstOrNull { it.lower == VIDEO_FPS && it.upper == VIDEO_FPS }
+            ?: ranges.filter { it.upper == VIDEO_FPS }.maxByOrNull { it.lower }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

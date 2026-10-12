@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- Android: a camera or encoder that fails to start shows the error on screen instead of crashing the app.
+
 ## [0.3.0] - 2026-10-12
 
 ### Added

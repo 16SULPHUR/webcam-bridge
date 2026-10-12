@@ -161,9 +161,8 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
-        isStreaming = true
         tvStatus.text = "Starting camera…"
-        streamer.start()
+        isStreaming = streamer.start()
     }
 
     private fun stopStreaming() {

@@ -111,25 +111,36 @@ class CameraStreamer(
         previewTextureView = textureView
     }
 
-    fun start() {
-        if (running.getAndSet(true)) return
+    /** Returns false (and reports why) when the camera or encoder could not be started. */
+    fun start(): Boolean {
+        if (running.getAndSet(true)) return true
 
-        // Start camera background thread
-        cameraThread = HandlerThread("CameraThread").also { it.start() }
-        cameraHandler = Handler(cameraThread!!.looper)
+        try {
+            // Start camera background thread
+            cameraThread = HandlerThread("CameraThread").also { it.start() }
+            cameraHandler = Handler(cameraThread!!.looper)
 
-        // Start encoder first so its input Surface is ready for camera
-        setupEncoder()
+            // Start encoder first so its input Surface is ready for camera
+            setupEncoder()
 
-        // Open camera
-        openCamera()
+            // Open camera
+            openCamera()
+        } catch (e: Exception) {
+            Log.e(TAG, "Could not start streaming", e)
+            stop()
+            statusCallback(errorStatus(e))
+            return false
+        }
 
         // Start TCP server on a separate thread
         serverThread = Thread(::runTcpServer, "TcpServerThread").also { it.start() }
         discovery.start()
 
         statusCallback(waitingStatus())
+        return true
     }
+
+    private fun errorStatus(e: Exception) = "Camera error: ${e.message ?: e.javaClass.simpleName}"
 
     fun stop() {
         if (!running.getAndSet(false)) return
@@ -292,7 +303,12 @@ class CameraStreamer(
                 } catch (e: Exception) {
                     Log.w(TAG, "Error closing camera for switch: ${e.message}")
                 }
-                openCamera()
+                try {
+                    openCamera()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Could not open camera $cameraId", e)
+                    statusCallback(errorStatus(e))
+                }
             }
         }
     }
@@ -343,7 +359,12 @@ class CameraStreamer(
             override fun onOpened(camera: CameraDevice) {
                 Log.i(TAG, "Camera opened")
                 cameraDevice = camera
-                createCaptureSession(camera)
+                try {
+                    createCaptureSession(camera)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Could not create capture session", e)
+                    statusCallback(errorStatus(e))
+                }
             }
 
             override fun onDisconnected(camera: CameraDevice) {
@@ -379,23 +400,12 @@ class CameraStreamer(
             object : CameraCaptureSession.StateCallback() {
                 override fun onConfigured(session: CameraCaptureSession) {
                     captureSession = session
-
-                    // Build a repeating capture request targeting encoder + preview surfaces
-                    val request = camera.createCaptureRequest(CameraDevice.TEMPLATE_RECORD).apply {
-                        addTarget(encoderSurface)
-                        previewSurface?.let { addTarget(it) }
-
-                        // ─── TUNE: AE / AF modes ─────────────────────────────────────
-                        set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO)
-                        set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
-                        // ─── TUNE: Lock sensor framerate to 30 FPS to prevent variable frame delays
-                        set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, android.util.Range<Int>(30, 30))
-                        // ─────────────────────────────────────────────────────────────
-                    }.build()
-
-                    session.setRepeatingRequest(request, null, cameraHandler)
-                    Log.i(TAG, "Capture session configured — encoding started with preview=${previewSurface != null}")
-                    statusCallback("Camera ready — waiting for PC to connect…")
+                    try {
+                        startRepeating(camera, session, encoderSurface, previewSurface)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Could not start the capture request", e)
+                        statusCallback(errorStatus(e))
+                    }
                 }
 
                 override fun onConfigureFailed(session: CameraCaptureSession) {
@@ -405,6 +415,30 @@ class CameraStreamer(
             },
             cameraHandler
         )
+    }
+
+    private fun startRepeating(
+        camera: CameraDevice,
+        session: CameraCaptureSession,
+        encoderSurface: Surface,
+        previewSurface: Surface?
+    ) {
+        // Build a repeating capture request targeting encoder + preview surfaces
+        val request = camera.createCaptureRequest(CameraDevice.TEMPLATE_RECORD).apply {
+            addTarget(encoderSurface)
+            previewSurface?.let { addTarget(it) }
+
+            // ─── TUNE: AE / AF modes ─────────────────────────────────────
+            set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO)
+            set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON)
+            // ─── TUNE: Lock sensor framerate to 30 FPS to prevent variable frame delays
+            set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, android.util.Range<Int>(30, 30))
+            // ─────────────────────────────────────────────────────────────
+        }.build()
+
+        session.setRepeatingRequest(request, null, cameraHandler)
+        Log.i(TAG, "Capture session configured — encoding started with preview=${previewSurface != null}")
+        statusCallback("Camera ready — waiting for PC to connect…")
     }
 
     // ─────────────────────────────────────────────────────────────────────────

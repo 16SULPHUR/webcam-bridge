@@ -36,16 +36,21 @@ class DiscoveryResponder(private val context: Context, private val streamPort: I
 
     fun start() {
         if (socket != null) return
-        lock = (context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager)
-            ?.createMulticastLock("webcam-bridge-discovery")
-            ?.apply { setReferenceCounted(false); acquire() }
+        lock = try {
+            (context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager)
+                ?.createMulticastLock("webcam-bridge-discovery")
+                ?.apply { setReferenceCounted(false); acquire() }
+        } catch (e: Exception) {
+            Log.w(TAG, "No multicast lock; Wi-Fi discovery may miss broadcasts: ${e.message}")
+            null
+        }
         Thread(::serve, "DiscoveryResponder").start()
     }
 
     fun stop() {
         socket?.close()
         socket = null
-        lock?.release()
+        try { lock?.release() } catch (e: Exception) { Log.w(TAG, e) }
         lock = null
     }
 

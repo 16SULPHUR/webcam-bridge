@@ -19,7 +19,7 @@ Android `versionName` and `versionCode`, and `CHANGELOG.md`. CI runs
 | Asset | Used by |
 |---|---|
 | `WebcamBridge-Setup-<v>.exe` | Windows users, winget |
-| `WebcamBridge-<v>-windows-x64.zip` | Portable Windows copy |
+| `WebcamBridge-<v>-portable.exe` | Single-file Windows app, no install |
 | `webcam-bridge-<v>.apk` | The bridge's automatic phone install, sideloading, Obtainium |
 | `webcam_bridge-<v>-py3-none-any.whl`, `.tar.gz` | pip / pipx, PyPI |
 | `webcam-bridge-vcam.zip` | `webcam-bridge fetch vcam` in source checkouts |

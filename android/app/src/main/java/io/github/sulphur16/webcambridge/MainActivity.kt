@@ -114,8 +114,7 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 tvStatus.text = status
                 // Show LIVE badge when connected to PC
-                val isConnected = status.contains("streaming", ignoreCase = true) ||
-                                  status.contains("connected", ignoreCase = true)
+                val isConnected = status.contains("streaming", ignoreCase = true)
                 tvRecBadge.visibility = if (isConnected) View.VISIBLE else View.GONE
             }
         }

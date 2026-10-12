@@ -82,7 +82,7 @@ class FaceTouchup:
             strength:  blend opacity 0.0 (off) → 1.0 (full)
 
         Returns:
-            Processed frame_rgb with skin smoothing applied.
+            frame_rgb with skin smoothing applied in place.
         """
         if self._face_mesh is None or strength < 0.01:
             return frame_rgb
@@ -146,19 +146,11 @@ class FaceTouchup:
 
             # ── Soft-edge blend local mask ────────────────────────────────
             # Gaussian blur size is scaled down proportionally to the smaller local crop
-            soft_mask = cv2.GaussianBlur(skin_mask.astype(np.float32) / 255.0, (11, 11), 0)
-            soft_mask_3d = np.stack([soft_mask] * 3, axis=-1) * float(strength)
+            soft_mask = cv2.GaussianBlur(skin_mask.astype(np.float32) * (float(strength) / 255.0), (11, 11), 0)
 
-            # ── Composite face crop ───────────────────────────────────────
-            result_face = (
-                face_crop.astype(np.float32) * (1.0 - soft_mask_3d)
-                + smoothed_face.astype(np.float32) * soft_mask_3d
-            ).astype(np.uint8)
-
-            # Paste processed crop back into a copy of the main frame
-            result = frame_rgb.copy()
-            result[y1:y2, x1:x2] = result_face
-            return result
+            # ── Composite face crop, in place ─────────────────────────────
+            frame_rgb[y1:y2, x1:x2] = cv2.blendLinear(face_crop, smoothed_face, 1.0 - soft_mask, soft_mask)
+            return frame_rgb
 
         except Exception as e:
             sys.stderr.write(f"[FaceTouchup] Error: {e}\n")

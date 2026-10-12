@@ -14,7 +14,7 @@ following third-party material.
 
 ## Standalone Windows builds
 
-The installer and portable zip also contain a Python runtime, the Python
+The installer and portable exe also contain a Python runtime, the Python
 dependencies from `desktop/pyproject.toml`, and:
 
 | Material | License |

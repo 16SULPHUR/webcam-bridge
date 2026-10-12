@@ -29,6 +29,28 @@
 
   <div>
     <div class="card">
+      <div class="card-head"><h3>Phone connection</h3></div>
+      <div class="field field-row">
+        <label>Connect over</label>
+        <select data-bind="connection">
+          <option value="usb">USB cable</option>
+          <option value="wifi">Wi-Fi</option>
+        </select>
+      </div>
+      <div id="wifi-fields" style="display:none">
+        <div class="field field-row">
+          <label>Phone address</label>
+          <input type="text" id="wifi-host" placeholder="Auto" style="max-width:150px" onchange="Connection.setHost(this.value)">
+        </div>
+        <div class="field field-row">
+          <span class="hint">Plug in once to pair, or open the app on the phone and search.</span>
+          <button class="btn sm" id="wifi-find" style="white-space:nowrap" onclick="Connection.find()">Find phone</button>
+        </div>
+      </div>
+      <div class="field"><span class="hint" id="conn-via"></span></div>
+    </div>
+
+    <div class="card">
       <div class="card-head"><h3>Quick toggles</h3></div>
       <div class="field field-row">
         <label>Mirror image</label>

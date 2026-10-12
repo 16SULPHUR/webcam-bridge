@@ -9,7 +9,7 @@ bridge installs the phone app for you, and there's nothing else to set up.
 [![Downloads](https://img.shields.io/github/downloads/16SULPHUR/webcam-bridge/total)](https://github.com/16SULPHUR/webcam-bridge/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-- 📱 **Phone camera over USB**: low latency, no Wi-Fi needed
+- 📱 **Phone camera over USB or Wi-Fi**: USB for the lowest latency, Wi-Fi to go cable-free
 - 🔌 **Plug and play**: finds the phone, installs and updates the app, starts streaming
 - 🎛️ **Web dashboard**: live preview, resolution / FPS, zoom, colour, sharpness
 - 🌄 **Virtual backgrounds**: blur or replace, with MediaPipe or Robust Video Matting
@@ -25,8 +25,9 @@ bridge installs the phone app for you, and there's nothing else to set up.
 **Windows 10/11:** download **`WebcamBridge-Setup-<version>.exe`** from the
 [latest release](https://github.com/16SULPHUR/webcam-bridge/releases/latest)
 and run it. It includes everything: no Python, adb or OBS needed, and it sets up
-the **Webcam Bridge** camera. Prefer no installer? Use the portable
-`WebcamBridge-<version>-windows-x64.zip`.
+the **Webcam Bridge** camera. Prefer no installer? Download the single-file
+**`WebcamBridge-<version>-portable.exe`** and double-click it (it takes a few
+seconds longer to start, because it unpacks itself each time).
 
 **Linux / macOS:**
 
@@ -47,7 +48,8 @@ Settings → About phone → tap **Build number** seven times, then turn on
 
 Open **Webcam Bridge** from the Start menu (or run `webcam-bridge`), plug the
 phone in and tap **Allow** on the phone. The bridge installs the app, opens it
-and starts streaming; the dashboard opens at <http://localhost:5134>.
+and starts streaming; the dashboard opens in its own window (on Linux, in your
+browser at <http://localhost:5134>).
 
 Then choose **Webcam Bridge** as the camera in your video app. Apps that were
 already open need a restart to see it.
@@ -82,8 +84,9 @@ webcam-bridge fetch models | skins | vcam | apk | adb | all
 |---|---|---|
 | `--host` / `WEBCAM_BRIDGE_HOST` | `127.0.0.1` | Dashboard bind address. Use `0.0.0.0` to control it from other devices over Wi-Fi. The dashboard has **no password**, so only do this on a trusted network. |
 | `--port` / `WEBCAM_BRIDGE_PORT` | `5134` | Dashboard port |
-| `--no-tui` | off | Plain log output instead of the terminal UI |
-| `--no-browser` / `WEBCAM_BRIDGE_NO_BROWSER` | off | Don't open the dashboard on start |
+| `--browser` / `WEBCAM_BRIDGE_BROWSER` | off | Open the dashboard in your web browser instead of its own window |
+| `--no-browser` / `WEBCAM_BRIDGE_NO_BROWSER` | off | Don't open the dashboard at all |
+| `--no-tui` | off | Plain log output instead of the terminal UI (when started from a terminal) |
 | `--no-adb` / `WEBCAM_BRIDGE_NO_ADB` | off | Don't manage the phone; run `adb forward tcp:8080 tcp:8080` yourself |
 | `--no-update-check` / `WEBCAM_BRIDGE_NO_UPDATE_CHECK` | off | Don't check GitHub for new releases |
 | `WEBCAM_BRIDGE_HOME` | `%LOCALAPPDATA%\WebcamBridge` | Settings, uploads, models, downloaded adb and APK |
@@ -96,10 +99,26 @@ webcam-bridge fetch models | skins | vcam | apk | adb | all
 
 On Windows the bridge ships its own DirectShow camera, **Webcam Bridge**
 (built from [softcam](https://github.com/tshino/softcam)). The installer
-registers it; with the portable zip or pip, run `webcam-bridge camera install`
+registers it; with the portable exe or pip, run `webcam-bridge camera install`
 or use the dashboard's **Camera** page. The **Virtual camera** setting picks the
 output: *Automatic* uses Webcam Bridge when installed and OBS Virtual Camera
 otherwise. Details and limitations: [vcam/windows/README.md](vcam/windows/README.md).
+
+## Wi-Fi streaming
+
+Pick **Wi-Fi** under **Phone connection** on the dashboard's Live page. The
+phone and the PC must be on the same network.
+
+- If the phone has been plugged in once, the bridge already knows its Wi-Fi
+  address: unplug it and keep streaming.
+- Otherwise open Webcam Bridge on the phone and click **Find phone**; the bridge
+  finds it on the network by itself. You can also type the address the phone
+  app shows.
+
+The bridge looks for the phone again if its address changes. USB remains the
+best choice for latency and battery; on Wi-Fi keep the phone on charge. The
+camera stream is not encrypted or password-protected, so use Wi-Fi mode on
+networks you trust.
 
 ## Phone remote control
 
@@ -127,6 +146,7 @@ artwork is documented in [docs/reactions.md](docs/reactions.md).
 | Camera shows a dark frozen image | The bridge stopped; start it again |
 | Windows SmartScreen warns about the installer | Click **More info → Run anyway**; the installer isn't code-signed yet |
 | Background removal is slow | Use the MediaPipe engine or a lower resolution. The RVM engine needs the pip install with the `rvm` extra |
+| *Find phone* finds nothing | Open the app on the phone, check both devices are on the same Wi-Fi (not a guest network, which often blocks devices from seeing each other), or type the address the phone app shows |
 | Camera permission denied | Android Settings → Apps → Webcam Bridge → Permissions |
 
 Still stuck? [Open an issue](https://github.com/16SULPHUR/webcam-bridge/issues/new/choose)

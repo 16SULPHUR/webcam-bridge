@@ -92,13 +92,14 @@ jobs:
           python-version: "3.12"
       - run: packaging\windows\build.ps1 -VcamDir build\vcam-dist -Apk build\apk\app-release.apk
         shell: pwsh
-      - run: python packaging/smoke_test.py build/stage/app/webcam-bridge.exe
+      - run: python -u packaging/smoke_test.py build/stage/app/webcam-bridge.exe --portable (Get-Item dist/WebcamBridge-*-portable.exe).FullName
+        shell: pwsh
       - uses: actions/upload-artifact@v7
         with:
           name: windows
           path: |
             dist/WebcamBridge-Setup-*.exe
-            dist/WebcamBridge-*-windows-x64.zip
+            dist/WebcamBridge-*-portable.exe
           if-no-files-found: error
 
   python:
@@ -160,6 +161,7 @@ jobs:
             echo
             echo -n "- **Windows:** download \`WebcamBridge-Setup-${VERSION}.exe\` below and run it"
             if [ -n "$WINGET_ID" ]; then echo " (or \`winget install $WINGET_ID\`)."; else echo "."; fi
+            echo "- **Windows, no install:** download \`WebcamBridge-${VERSION}-portable.exe\` and run it."
             if [ "$PYPI" = "true" ]; then
               echo "- **Linux / macOS:** \`pipx install webcam-bridge\`"
             else

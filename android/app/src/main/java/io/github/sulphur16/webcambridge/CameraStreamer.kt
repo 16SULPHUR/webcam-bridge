@@ -229,45 +229,48 @@ class CameraStreamer(
 
         while (running.get()) {
             val enc = encoder ?: break
-
-            // Dequeue output buffer (timeout 10ms to allow loop to check running flag)
-            val outIndex = try {
-                enc.dequeueOutputBuffer(bufferInfo, 10_000)
+            try {
+                drainOnce(enc, bufferInfo)
             } catch (e: IllegalStateException) {
-                break  // encoder was stopped
-            }
-
-            when {
-                outIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
-                    // Format changed — SPS/PPS will arrive as CODEC_CONFIG buffer next
-                    Log.i(TAG, "Encoder output format changed")
-                }
-                outIndex >= 0 -> {
-                    val outBuf: ByteBuffer = enc.getOutputBuffer(outIndex) ?: continue
-                    outBuf.position(bufferInfo.offset)
-                    outBuf.limit(bufferInfo.offset + bufferInfo.size)
-
-                    val raw = ByteArray(bufferInfo.size)
-                    outBuf.get(raw)
-
-                    if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) {
-                        // SPS+PPS — ensure Annex B start codes, then:
-                        // 1. Save for future new clients
-                        // 2. Also send to any currently connected client (race-condition fix)
-                        val data = ensureAnnexB(raw)
-                        spsppsBuf = data
-                        sendToClient(data)  // send to existing client if any
-                        Log.i(TAG, "Got SPS/PPS (${data.size} bytes), sent to existing client")
-                    } else {
-                        // Regular encoded frame — send to current TCP client
-                        sendToClient(raw)
-                    }
-
-                    enc.releaseOutputBuffer(outIndex, false)
-                }
+                break  // encoder was stopped or failed
             }
         }
         Log.i(TAG, "Encoder drain thread exiting")
+    }
+
+    private fun drainOnce(enc: MediaCodec, bufferInfo: MediaCodec.BufferInfo) {
+        // Dequeue output buffer (timeout 10ms to allow loop to check running flag)
+        val outIndex = enc.dequeueOutputBuffer(bufferInfo, 10_000)
+
+        when {
+            outIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
+                // Format changed — SPS/PPS will arrive as CODEC_CONFIG buffer next
+                Log.i(TAG, "Encoder output format changed")
+            }
+            outIndex >= 0 -> {
+                val outBuf: ByteBuffer = enc.getOutputBuffer(outIndex) ?: return
+                outBuf.position(bufferInfo.offset)
+                outBuf.limit(bufferInfo.offset + bufferInfo.size)
+
+                val raw = ByteArray(bufferInfo.size)
+                outBuf.get(raw)
+
+                if (bufferInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG != 0) {
+                    // SPS+PPS — ensure Annex B start codes, then:
+                    // 1. Save for future new clients
+                    // 2. Also send to any currently connected client (race-condition fix)
+                    val data = ensureAnnexB(raw)
+                    spsppsBuf = data
+                    sendToClient(data)  // send to existing client if any
+                    Log.i(TAG, "Got SPS/PPS (${data.size} bytes), sent to existing client")
+                } else {
+                    // Regular encoded frame — send to current TCP client
+                    sendToClient(raw)
+                }
+
+                enc.releaseOutputBuffer(outIndex, false)
+            }
+        }
     }
 
     /**
@@ -489,9 +492,13 @@ class CameraStreamer(
 
                 // Request a fresh IDR keyframe from the encoder so the client gets
                 // a complete, self-contained frame immediately after SPS/PPS
-                encoder?.setParameters(android.os.Bundle().apply {
-                    putInt(android.media.MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0)
-                })
+                try {
+                    encoder?.setParameters(android.os.Bundle().apply {
+                        putInt(android.media.MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0)
+                    })
+                } catch (e: IllegalStateException) {
+                    Log.w(TAG, "Could not request a keyframe: ${e.message}")
+                }
 
                 // Block here until the client disconnects by reading from its InputStream.
                 // Since the client never sends data, read() will block until EOF (-1) or exception.

@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-12
+
 ### Added
 - Wi-Fi streaming: choose **USB cable** or **Wi-Fi** on the dashboard. The phone's address is saved
   whenever it is plugged in, and **Find phone** discovers the app on the local network, so no IP typing is needed.

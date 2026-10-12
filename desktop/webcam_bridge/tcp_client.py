@@ -1,11 +1,11 @@
 """
-tcp_client.py — Connects to the Android camera server via ADB port forward.
+tcp_client.py — Connects to the Android camera server.
 
-The Android app runs a TCP server on port 8080.
-ADB port forward maps localhost:8080 → phone:8080.
+The Android app runs a TCP server on port 8080, reached through adb forward
+(localhost:8080) on USB or directly at the phone's address on Wi-Fi.
 
 This client:
-  1. Connects to localhost:8080
+  1. Connects to the address given by the StreamTarget
   2. Reads H.264 data and calls data_callback(chunk) for each chunk
   3. Reconnects on disconnect (unless stopped)
   4. Updates the broadcaster with connection state
@@ -17,13 +17,13 @@ import time
 from typing import Callable, Optional
 
 from .broadcaster import EventBroadcaster
+from .wifi import USB_TARGET
 
 
 # ── Tuning constants ──────────────────────────────────────────────────────────
-ADB_HOST        = "127.0.0.1"
-ADB_PORT        = 8080
 RECONNECT_DELAY = 2.0   # seconds between reconnect attempts
 READ_CHUNK_SIZE = 65536  # bytes per read()
+READ_TIMEOUT    = 10.0   # a phone that left the Wi-Fi never closes the socket
 
 
 class AndroidTcpClient:
@@ -40,7 +40,9 @@ class AndroidTcpClient:
         data_callback:   Callable[[bytes], None],
         on_connect:      Optional[Callable[[], None]] = None,
         on_disconnect:   Optional[Callable[[], None]] = None,
+        target=None,
     ) -> None:
+        self._target         = target
         self._bc             = broadcaster
         self._data_cb        = data_callback
         self._on_connect     = on_connect
@@ -116,15 +118,19 @@ class AndroidTcpClient:
     def _connect_and_read(self) -> None:
         first = b""
         while self._running:
+            address = self._target.resolve() if self._target else USB_TARGET
+            if address is None:
+                time.sleep(RECONNECT_DELAY)
+                continue
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
                 sock.settimeout(3.0)
-                sock.connect((ADB_HOST, ADB_PORT))
-                sock.settimeout(None)
+                self._pending = sock
+                sock.connect(address)
+                sock.settimeout(READ_TIMEOUT)
                 # adb accepts the forward even when the app isn't listening yet and then
                 # closes it; only a connection that delivers data counts as connected.
-                self._pending = sock
                 first = sock.recv(READ_CHUNK_SIZE)
                 self._pending = None
                 if not first:
@@ -135,6 +141,9 @@ class AndroidTcpClient:
                 break
             except (ConnectionRefusedError, TimeoutError, OSError):
                 # Android app not streaming yet — retry silently
+                self._pending = None
+                if self._target:
+                    self._target.failed()
                 if self._running:
                     time.sleep(RECONNECT_DELAY)
             except Exception as exc:
@@ -143,11 +152,14 @@ class AndroidTcpClient:
 
         if not self._running or self._sock is None:
             return
+        if self._target:
+            self._target.connected()
 
-        self._bc.update_stats(androidConnected=True, h264ReceivedBytes=self._total_bytes)
+        via = "USB" if address == USB_TARGET else f"Wi-Fi ({address[0]})"
+        self._bc.update_stats(androidConnected=True, h264ReceivedBytes=self._total_bytes, connectedVia=via)
         self._bc.broadcast_status()
-        self._bc.broadcast_log("node", "[Bridge] [OK] Connected to Android stream!")
-        print("[Bridge] [OK] Connected to Android stream!")
+        self._bc.broadcast_log("node", f"[Bridge] [OK] Connected to Android stream over {via}")
+        print(f"[Bridge] [OK] Connected to Android stream over {via}")
 
         if self._on_connect:
             self._on_connect()

@@ -10,6 +10,7 @@ Routes:
   GET  /api/config          → current config JSON
   POST /api/config          → update config + trigger pipeline restart
   POST /api/reconnect       → trigger manual pipeline restart
+  POST /api/wifi/discover   → look for phones on the local network
   POST /api/record/start    → begin H.264 → MP4 recording
   POST /api/record/stop     → end recording
   GET  /api/status          → one-shot status JSON
@@ -36,7 +37,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional
 from urllib.parse import parse_qs, unquote, urlparse
 
-from . import __version__, paths
+from . import __version__, paths, wifi
 from .broadcaster import EventBroadcaster, SseClient, VideoClient
 from .config import DASHBOARD_HOST, DASHBOARD_PORT, ConfigManager
 from .recorder import RecordingManager
@@ -155,6 +156,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._handle_reaction_preview()
             elif path in ("/api/vcam/install", "/api/vcam/uninstall"):
                 self._handle_vcam_change(path.rsplit("/", 1)[1])
+            elif path == "/api/wifi/discover":
+                self._handle_wifi_discover()
             else:
                 self.send_error(404)
         except Exception as exc:
@@ -264,8 +267,15 @@ class BridgeHandler(BaseHTTPRequestHandler):
             new_fps = data.get("targetFps", old_fps)
 
             needs_restart = (old_res != new_res) or (old_fps != new_fps)
+            link_keys = ("connection", "wifiHost", "wifiPort")
+            old_link = [self.config.get(k) for k in link_keys]
 
             self.config.update(data)
+
+            if [self.config.get(k) for k in link_keys] != old_link:
+                self.broadcaster.update_stats(wifiHost=self.config.get("wifiHost"))
+                if self._tcp_client_ref:
+                    self._tcp_client_ref.disconnect()
 
             # Forward camera switch commands to the streamer device via TCP command channel
             camera_facing = data.get("cameraFacing")
@@ -299,6 +309,17 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 )
         except Exception as exc:
             self._json({"error": str(exc)}, 400)
+
+    def _handle_wifi_discover(self) -> None:
+        phones = wifi.discover()
+        if phones:
+            phone = phones[0]
+            self.config.update({"connection": "wifi", "wifiHost": phone["host"], "wifiPort": phone["port"]})
+            self.broadcaster.update_stats(wifiHost=phone["host"])
+            self.broadcaster.broadcast_log("system", f"[Phone] Found {phone['name']} on Wi-Fi at {phone['host']}")
+            if self._tcp_client_ref:
+                self._tcp_client_ref.disconnect()
+        self._json({"phones": phones, "config": self.config.to_dict()})
 
     def _handle_record_start(self) -> None:
         if self.recorder.is_recording:

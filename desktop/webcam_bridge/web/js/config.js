@@ -13,6 +13,7 @@ const Config = (() => {
     targetFps:           ['int', 30],
     orientation:         ['int', 0],
     cameraFacing:        ['string', 'back'],
+    connection:          ['string', 'usb'],
     mirror:              ['bool', false],
     vcamEnabled:         ['bool', true],
     vcamBackend:         ['string', 'auto'],
@@ -88,6 +89,7 @@ const Config = (() => {
       applyBgUI();
       applyConditionalUI();
 
+      Connection.applyFromConfig(cfg);
       Pets.applyFromConfig(cfg);
       Reactions.applyFromConfig(cfg);
       Stream.setResolution(cfg.resolution);
@@ -158,6 +160,7 @@ const Config = (() => {
     show('rvm-field', rvm);
     show('rvm-note', rvm);
     show('touchup-field', readField('faceTouchupEnabled'));
+    show('wifi-fields', readField('connection') === 'wifi');
     show('bg-blur-field', _bgMode === 'blur');
     show('bg-replace-field', _bgMode === 'replace');
   }

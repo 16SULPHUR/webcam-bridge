@@ -16,7 +16,7 @@ import threading
 import time
 from typing import Optional
 
-from . import __version__, adb, paths
+from . import __version__, adb, paths, wifi
 from .updates import parse_version
 
 APP_ID = "io.github.sulphur16.webcambridge"
@@ -32,6 +32,7 @@ HINTS = {
     "installing": "Installing the Webcam Bridge app on your phone...",
     "no-app": "Install the Webcam Bridge app on your phone (see the Releases page).",
     "ready": "Phone connected. Waiting for the camera stream...",
+    "wifi": wifi.HINT,
 }
 
 
@@ -53,9 +54,16 @@ def installed_app_version(adb_path: str, serial: str) -> Optional[str]:
     return m.group(1) if m else ""
 
 
+def wifi_address(adb_path: str, serial: str) -> Optional[str]:
+    out = adb.run(adb_path, ["shell", "ip", "-f", "inet", "addr", "show", "wlan0"], serial).stdout
+    m = re.search(r"inet (\d+\.\d+\.\d+\.\d+)/", out)
+    return m.group(1) if m else None
+
+
 class DeviceManager:
-    def __init__(self, broadcaster, dashboard_port: int, auto_install: bool = True) -> None:
+    def __init__(self, broadcaster, dashboard_port: int, auto_install: bool = True, config=None) -> None:
         self._bc = broadcaster
+        self._config = config
         self._dashboard_port = dashboard_port
         self._auto_install = auto_install
         self._running = False
@@ -135,6 +143,8 @@ class DeviceManager:
                 self._set_state("unauthorized")
             elif devices:
                 self._set_state("offline")
+            elif self._config and self._config.get("connection") == "wifi":
+                self._set_state("wifi")
             else:
                 self._set_state("no-device")
 
@@ -158,6 +168,15 @@ class DeviceManager:
         self._serial = serial
         self._set_state("ready")
         self._log("Ready. The app was opened on your phone.")
+        self._remember_wifi(serial)
+
+    def _remember_wifi(self, serial: str) -> None:
+        """Pairing for Wi-Fi mode: once the phone has been on USB, its address is known."""
+        ip = self._config and wifi_address(self._adb, serial)
+        if ip and ip != self._config.get("wifiHost"):
+            self._config.update({"wifiHost": ip, "wifiPort": STREAM_PORT})
+            self._bc.update_stats(wifiHost=ip)
+            self._log(f"Wi-Fi address {ip} saved; you can switch to Wi-Fi and unplug")
 
     def _ensure_app(self, serial: str) -> bool:
         current = installed_app_version(self._adb, serial)

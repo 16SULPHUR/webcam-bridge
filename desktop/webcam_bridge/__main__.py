@@ -14,7 +14,7 @@ Starts:
   4. BridgeServer  — HTTP dashboard
   5. Pipeline  — FFmpeg VCam + Web + Python frame_sender
   6. DeviceManager  — sets up the phone over USB (adb, app install, forwarding)
-  7. AndroidTcpClient  — connects to Android over ADB
+  7. AndroidTcpClient  — connects to Android over adb forward or Wi-Fi
 """
 
 import argparse
@@ -36,6 +36,7 @@ from .tcp_client  import AndroidTcpClient
 from .web_server    import BridgeServer
 from .phone_stats  import PhoneStatsCollector
 from .device       import DeviceManager
+from .wifi         import StreamTarget
 
 
 def _env_flag(name: str) -> bool:
@@ -224,7 +225,7 @@ def main(argv=None) -> None:
     server.set_pipeline(pipeline)
 
     # ── 3b. Phone setup over USB + stats ─────────────────────────────────────
-    device = None if args.no_adb else DeviceManager(broadcaster, dashboard_port=args.port)
+    device = None if args.no_adb else DeviceManager(broadcaster, dashboard_port=args.port, config=config)
     if device:
         adb_command = device.adb_command
     else:
@@ -245,6 +246,7 @@ def main(argv=None) -> None:
         data_callback = pipeline.feed,
         on_connect    = None,
         on_disconnect = on_disconnect,
+        target        = StreamTarget(config, broadcaster),
     )
     pipeline.set_on_stop(lambda: tcp_client.disconnect())
     server.set_tcp_client(tcp_client)

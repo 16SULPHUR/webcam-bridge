@@ -37,7 +37,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional
 from urllib.parse import parse_qs, unquote, urlparse
 
-from . import __version__, paths, wifi
+from . import __version__, paths, updates, wifi
 from .broadcaster import EventBroadcaster, SseClient, VideoClient
 from .config import DASHBOARD_HOST, DASHBOARD_PORT, ConfigManager
 from .recorder import RecordingManager
@@ -158,10 +158,17 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 self._handle_vcam_change(path.rsplit("/", 1)[1])
             elif path == "/api/wifi/discover":
                 self._handle_wifi_discover()
+            elif path == "/api/update/install":
+                self._handle_update_install()
             else:
                 self.send_error(404)
         except Exception as exc:
             self.broadcaster.broadcast_log("node", f"[Web] POST error: {exc}")
+
+    def _handle_update_install(self) -> None:
+        version = self.broadcaster.get_stats().get("updateAvailable")
+        started = bool(version) and updates.install_in_background(self.broadcaster, version)
+        self._json({"success": started})
 
     # ── Static file serving ───────────────────────────────────────────────────
 

@@ -244,3 +244,40 @@ def test_bundled_apk_is_found(monkeypatch, tmp_path):
     (tmp_path / "android" / "webcam-bridge.apk").write_bytes(b"apk")
     monkeypatch.setattr(paths, "BUNDLE_DIR", str(tmp_path))
     assert device.find_apk() == str(tmp_path / "android" / "webcam-bridge.apk")
+
+
+def test_install_kind_is_none_from_source():
+    assert updates.install_kind() is None
+
+
+def test_update_download_rejects_bad_checksum(monkeypatch, tmp_path):
+    blob = b"installer"
+    name = "WebcamBridge-Setup-9.9.9.exe"
+
+    class Resp:
+        def __init__(self, data):
+            self.data, self.headers = data, {"Content-Length": str(len(data))}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            pass
+
+        def read(self, n=-1):
+            data, self.data = self.data, b""
+            return data
+
+    def fake_urlopen(req, timeout=0):
+        return Resp(sums.encode() if req.full_url.endswith("SHA256SUMS.txt") else blob)
+
+    monkeypatch.setattr(updates.urllib.request, "urlopen", fake_urlopen)
+    dest = tmp_path / name
+    sums = f"{hashlib.sha256(blob).hexdigest()}  {name}\n"
+    updates._download_verified("9.9.9", name, str(dest), lambda pct: None)
+    assert dest.read_bytes() == blob
+
+    sums = f"{'0' * 64}  {name}\n"
+    with pytest.raises(OSError):
+        updates._download_verified("9.9.9", name, str(dest), lambda pct: None)
+    assert not dest.exists()

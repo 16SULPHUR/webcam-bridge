@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Webcam Bridge</string>
+    <string name="update_title">Update available</string>
+    <string name="update_message">Webcam Bridge %1$s is available (you have %2$s).</string>
+    <string name="update_install">Update</string>
+    <string name="update_later">Later</string>
+    <string name="update_skip">Skip this version</string>
+    <string name="update_downloading">Downloading update</string>
+    <string name="update_failed">Update failed: %1$s</string>
+    <string name="update_allow_installs">Allow Webcam Bridge to install updates, then open the app again.</string>
 </resources>

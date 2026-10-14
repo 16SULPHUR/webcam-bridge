@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-14
+
 ### Fixed
 - Android: a camera or encoder that fails to start shows the error on screen instead of crashing the app.
 - Android: older phones whose camera or encoder rejects the 30 FPS or low-latency settings fall back to settings they support.

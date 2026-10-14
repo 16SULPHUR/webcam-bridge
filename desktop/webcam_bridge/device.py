@@ -47,6 +47,9 @@ def find_apk() -> Optional[str]:
 
 def installed_app_version(adb_path: str, serial: str) -> Optional[str]:
     """versionName of the app on the phone, '' if installed without one, None if absent."""
+    listed = adb.run(adb_path, ["shell", "pm", "list", "packages", APP_ID], serial).stdout
+    if f"package:{APP_ID}" not in listed.split():
+        return None
     out = adb.run(adb_path, ["shell", "dumpsys", "package", APP_ID], serial).stdout
     if f"Package [{APP_ID}]" not in out:
         return None

@@ -6,6 +6,9 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- The bridge no longer treats a phone app that is hidden or left over from another user or profile as installed. It installs the app, and replaces the leftover copy if the signatures differ.
+
 ## [0.4.0] - 2026-10-14
 
 ### Added

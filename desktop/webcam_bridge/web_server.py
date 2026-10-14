@@ -390,11 +390,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
         query = urlparse(self.path).query
         params = parse_qs(query)
         filename = os.path.basename(params.get("filename", [""])[0])
+        length = int(self.headers.get("Content-Length", 0))
+        data = self.rfile.read(length)
         if not filename or os.path.splitext(filename)[1].lower() not in BACKGROUND_EXTS:
             self._json({"success": False, "error": "Unsupported or missing filename"}, 400)
             return
-        length = int(self.headers.get("Content-Length", 0))
-        data = self.rfile.read(length)
 
         bg_path = os.path.join(paths.USER_BG_DIR, filename)
         try:
@@ -439,11 +439,11 @@ class BridgeHandler(BaseHTTPRequestHandler):
         params = parse_qs(urlparse(self.path).query)
         filename = os.path.basename(params.get("filename", [""])[0])
         ext = os.path.splitext(filename)[1].lower()
+        length = int(self.headers.get("Content-Length", 0))
+        data = self.rfile.read(length)
         if not filename or ext not in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
             self._json({"success": False, "error": "Unsupported or missing filename"}, 400)
             return
-        length = int(self.headers.get("Content-Length", 0))
-        data = self.rfile.read(length)
         try:
             os.makedirs(self.reactions_dir, exist_ok=True)
             with open(os.path.join(self.reactions_dir, filename), "wb") as fh:

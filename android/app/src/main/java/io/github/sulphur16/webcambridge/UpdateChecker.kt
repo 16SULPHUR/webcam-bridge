@@ -130,7 +130,7 @@ object UpdateChecker {
         conn.connectTimeout = 15000
         conn.readTimeout = 30000
         try {
-            val total = conn.contentLengthLong
+            val total = conn.contentLength.toLong()
             var done = 0L
             var lastPct = -1
             conn.inputStream.use { input ->

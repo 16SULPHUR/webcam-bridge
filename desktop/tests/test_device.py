@@ -28,8 +28,9 @@ class FakeBroadcaster:
 class FakePhone:
     """Stands in for adb: records commands and answers like a phone would."""
 
-    def __init__(self, state="device", app_version=None, install_output="Success", uninstallable=True):
+    def __init__(self, state="device", app_version=None, install_output="Success", uninstallable=True, ghost=False):
         self.state = state
+        self.ghost = ghost
         self.uninstallable = uninstallable
         self.app_version = app_version
         self.install_output = install_output
@@ -38,7 +39,10 @@ class FakePhone:
     def run(self, adb_path, args, serial=None, timeout=10.0):
         self.commands.append(args)
         out, code = "", 0
-        if args[:3] == ["shell", "dumpsys", "package"] and self.app_version is not None:
+        if args[:4] == ["shell", "pm", "list", "packages"]:
+            if self.app_version is not None and not self.ghost:
+                out = f"package:{device.APP_ID}\n"
+        elif args[:3] == ["shell", "dumpsys", "package"] and self.app_version is not None:
             out = f"Packages:\n  Package [{device.APP_ID}] (abc):\n    versionName={self.app_version}\n"
         elif args[0] == "install":
             out = self.install_output
@@ -155,6 +159,17 @@ def test_list_devices_parsing(monkeypatch):
            "R58M123\tdevice\nemulator-5554\tunauthorized\n\n")
     monkeypatch.setattr(adb, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, out, ""))
     assert adb.list_devices("adb") == [("R58M123", "device"), ("emulator-5554", "unauthorized")]
+
+
+def test_package_left_over_from_another_user_is_not_treated_as_installed(phone):
+    fake = phone(app_version="0.3.1", ghost=True,
+                 install_output="Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE: ...]")
+    mgr, bc = manager()
+    mgr._poll()
+    assert ["install", "-r", device.find_apk()] in fake.commands
+    assert ["uninstall", device.APP_ID] in fake.commands
+    assert fake.app_version == __version__
+    assert bc.stats["deviceState"] == "ready"
 
 
 def test_adb_env_override_wins(monkeypatch, tmp_path):

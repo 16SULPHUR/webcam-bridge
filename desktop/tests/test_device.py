@@ -28,8 +28,9 @@ class FakeBroadcaster:
 class FakePhone:
     """Stands in for adb: records commands and answers like a phone would."""
 
-    def __init__(self, state="device", app_version=None, install_output="Success"):
+    def __init__(self, state="device", app_version=None, install_output="Success", uninstallable=True):
         self.state = state
+        self.uninstallable = uninstallable
         self.app_version = app_version
         self.install_output = install_output
         self.commands = []
@@ -41,9 +42,14 @@ class FakePhone:
             out = f"Packages:\n  Package [{device.APP_ID}] (abc):\n    versionName={self.app_version}\n"
         elif args[0] == "install":
             out = self.install_output
+            if "INCOMPATIBLE" in out and self.app_version is None:
+                out = "Success"
             code = 0 if out == "Success" else 1
             if code == 0:
                 self.app_version = __version__
+        elif args[0] == "uninstall" and self.uninstallable:
+            self.app_version = None
+            out = "Success"
         elif args[:2] == ["shell", "getprop"]:
             out = "Pixel 7\n"
         return subprocess.CompletedProcess(args, code, out, "")
@@ -93,8 +99,18 @@ def test_current_app_is_not_reinstalled(phone):
     assert bc.stats["deviceState"] == "ready"
 
 
-def test_outdated_app_with_other_signature_still_streams(phone):
+def test_app_with_other_signature_is_replaced(phone):
     fake = phone(app_version="0.0.1", install_output="Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE: ...]")
+    mgr, bc = manager()
+    mgr._poll()
+    assert ["uninstall", device.APP_ID] in fake.commands
+    assert fake.app_version == __version__
+    assert bc.stats["deviceState"] == "ready"
+
+
+def test_outdated_app_with_other_signature_still_streams(phone):
+    fake = phone(app_version="0.0.1", install_output="Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE: ...]",
+                 uninstallable=False)
     mgr, bc = manager()
     mgr._poll()
     assert bc.stats["deviceState"] == "ready"

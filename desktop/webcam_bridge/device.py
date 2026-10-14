@@ -198,11 +198,17 @@ class DeviceManager:
         self._set_state("installing")
         self._log(f"{'Updating' if outdated else 'Installing'} the app from {apk}")
         result = adb.run(self._adb, ["install", "-r", apk], serial, timeout=180)
+        detail = (result.stdout + result.stderr).strip().splitlines()[-1:] or ["unknown error"]
+        if result.returncode != 0 and "INSTALL_FAILED_UPDATE_INCOMPATIBLE" in detail[0]:
+            self._log("The app on the phone was signed with a different key; replacing it")
+            adb.run(self._adb, ["uninstall", APP_ID], serial, timeout=60)
+            result = adb.run(self._adb, ["install", apk], serial, timeout=180)
+            detail = (result.stdout + result.stderr).strip().splitlines()[-1:] or ["unknown error"]
+            current = installed_app_version(self._adb, serial) if result.returncode else current
         if result.returncode == 0:
             self._log("App installed")
             return True
 
-        detail = (result.stdout + result.stderr).strip().splitlines()[-1:] or ["unknown error"]
         self._install_failed.add(serial)
         if "INSTALL_FAILED_UPDATE_INCOMPATIBLE" in detail[0]:
             hint = "Uninstall the old Webcam Bridge app from your phone, then reconnect it."

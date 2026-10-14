@@ -31,12 +31,16 @@ packaging problems show up before a release.
 
 ## One-time setup
 
-All of these are optional; without them the release still works.
+### APK signing (required)
 
-### APK signing
+Every release APK must be signed with the same key, or phones refuse to update
+("package conflicts with an existing package"). The release fails if the key
+is missing, and checks the APK's certificate against
+`android/release-cert.sha256`. Never change that file unless you have lost the
+key; every user would have to uninstall the app once.
 
-Without a key, the APK is signed with a throwaway debug key and users must
-uninstall the app before each update. Create a key once and keep it safe:
+The key is already set up for this repository. For a fork, create one and keep
+it safe:
 
 ```bash
 keytool -genkeypair -v -keystore release.jks -alias webcam-bridge -keyalg RSA -keysize 4096 -validity 10000
@@ -44,7 +48,16 @@ base64 -w0 release.jks   # macOS: base64 -i release.jks
 ```
 
 Add repository secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
-`ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`.
+`ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, then put the key's SHA-256
+fingerprint (`keytool -list -v -keystore release.jks`, lowercase, no colons) in
+`android/release-cert.sha256`.
+
+Builds from source (`scripts/install-android.bat`, Android Studio) are signed
+with your local debug key, so they can't be updated by a release. The bridge
+replaces such a build automatically when the phone is plugged in; when
+sideloading, uninstall it first.
+
+The rest is optional; without it the release still works.
 
 ### PyPI (`pipx install webcam-bridge`)
 

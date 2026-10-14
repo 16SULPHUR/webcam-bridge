@@ -67,8 +67,9 @@ jobs:
           ./gradlew assembleRelease
       - name: Check signing key
         run: |
-          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
-          actual=$("$apksigner" verify --print-certs android/app/build/outputs/apk/release/app-release.apk | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          set -o pipefail
+          actual=$(keytool -printcert -jarfile android/app/build/outputs/apk/release/app-release.apk \
+            | sed -n 's/^\s*SHA256: //p' | head -1 | tr -d ':' | tr 'A-F' 'a-f')
           expected=$(cat android/release-cert.sha256)
           if [ "$actual" != "$expected" ]; then
             echo "::error::APK is signed with $actual, expected $expected. Phones with an earlier release could not update."

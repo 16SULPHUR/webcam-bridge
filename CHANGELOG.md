@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-14
+
 ### Added
 - In-app updates. The Android app checks GitHub for a newer release on launch and installs it through the system installer.
   The Windows app's **Update available** link now downloads, verifies and installs the new version (installer or portable exe).

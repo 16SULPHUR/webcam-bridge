@@ -129,14 +129,35 @@ const Stream = (() => {
 
     if (data.recording !== undefined) setRecordingUI(data.recording);
     if (data.updateAvailable) {
-      const link = el('update-link');
-      if (link) {
-        link.textContent = 'Update available: v' + data.updateAvailable;
-        link.style.display = '';
-      }
+      updateBanner(data);
     }
     phoneStats(data);
     Connection.applyStatus(data);
+  }
+
+  function updateBanner(data) {
+    const link = el('update-link');
+    const btn = el('update-install');
+    const text = 'Update available: v' + data.updateAvailable;
+    const states = {
+      downloading: 'Downloading update… ' + (data.updateProgress || 0) + '%',
+      installing: 'Installing update…',
+      failed: 'Update failed, retry',
+    };
+    const busy = data.updateState === 'downloading' || data.updateState === 'installing';
+    if (data.updateInstallable && btn) {
+      btn.textContent = states[data.updateState] || text + ' (install)';
+      btn.disabled = busy;
+      btn.style.display = '';
+      if (link) link.style.display = 'none';
+      if (!btn.dataset.bound) {
+        btn.dataset.bound = '1';
+        btn.addEventListener('click', () => fetch('/api/update/install', { method: 'POST' }));
+      }
+    } else if (link) {
+      link.textContent = text;
+      link.style.display = '';
+    }
   }
 
   function setText(id, value) {

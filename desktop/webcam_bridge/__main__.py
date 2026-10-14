@@ -277,6 +277,8 @@ def main(argv=None) -> None:
             device.start()
         phone_stats.start()
         if not args.no_update_check:
+            updates.exit_hook = shutdown
+            updates.cleanup_old_portable()
             updates.check_in_background(broadcaster)
         if not (args.no_browser or use_window):
             threading.Timer(1.0, webbrowser.open, args=(dashboard_url,)).start()

@@ -63,6 +63,7 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(R.layout.activity_main)
         CrashReporter.showPendingReport(this)
+        if (!launchedByBridge) UpdateChecker.checkOnLaunch(this)
 
         cameraPreview = findViewById(R.id.cameraPreview)
         tvStatus      = findViewById(R.id.tvStatus)
